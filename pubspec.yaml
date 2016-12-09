@@ -1,0 +1,5 @@
+---
+name: parser
+description: A lexical parser for OGabl, a language transpiled  to GAB.
+dependencies:
+    test: any
