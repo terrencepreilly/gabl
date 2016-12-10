@@ -14,7 +14,7 @@ List<String> CTRLS = const ['if', 'while', 'for', 'else'];
 List<String> OPERS = const ['+', '-', '*', '/'];
 
 enum TokenType {
-    function,
+    submodule,
     name,
     type,
     literal,
@@ -35,7 +35,7 @@ class Token {
 
     TokenType get type {
         if (this.symbol == 'sub')
-            return TokenType.function;
+            return TokenType.submodule;
         else if ('{' == this.symbol)
             return TokenType.openblock;
         else if ('}' == this.symbol)
@@ -53,7 +53,8 @@ class Token {
         else if (OPERS.any((x) => x == this.symbol))
             return TokenType.operator;
         else if (NUMERIC_LITERAL.hasMatch(this.symbol)
-            || STRING_LITERAL.hasMatch(this.symbol))
+            || STRING_LITERAL.hasMatch(this.symbol)
+            || BOOL_LITERAL.hasMatch(this.symbol))
             return TokenType.literal;
         return TokenType.name;
     }

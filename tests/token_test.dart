@@ -3,9 +3,9 @@ import 'package:test/test.dart';
 
 void main() {
     group('symbol', () {
-        test('function keyword can be detected', () {
+        test('submodule keyword can be detected', () {
             Token e = new Token('sub');
-            expect(e.type, equals(TokenType.function));
+            expect(e.type, equals(TokenType.submodule));
         });
         test('name can be detected', () {
             Token e = new Token('aParameterName');
@@ -22,6 +22,10 @@ void main() {
             expect(e1.type, equals(TokenType.literal));
             Token e2 = new Token('2342');
             expect(e2.type, equals(TokenType.literal));
+            Token e3 = new Token('true');
+            expect(e3.type, equals(TokenType.literal));
+            Token e4 = new Token('false');
+            expect(e4.type, equals(TokenType.literal));
         });
         test('control can be detected', () {
             expect(new Token('if').type, equals(TokenType.control));
