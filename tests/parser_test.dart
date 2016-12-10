@@ -44,25 +44,12 @@ main() {
         });
 
         test('can parse simple definition', () {
-            String s = 'str a = "hello";';
+            String s = 'str a <- "hello";';
             SimpleStream<Token> ss = new SimpleStream<Token>(
                 new List<Token>.from(tokenize(s)));
 
             Node eq = parse_definition(ss);
-            expect(eq, isNot(equals(null)));
-            expect(eq.type, equals('operator'));
-            expect(eq.value, equals('='));
-
-            Node lhs = eq.childAt(0);
-            expect(lhs, isNot(equals(null)));
-            expect(lhs.type, equals('type'));
-            expect(lhs.value, equals('str'));
-            expect(lhs.childAt(0).childAt(0).type, equals('name'));
-
-            Node rhs = eq.childAt(1);
-            expect(rhs, isNot(equals(null)));
-            expect(rhs.type, equals('str'));
-            expect(rhs.value, equals('"hello"'));
-        }, skip: 'Need to do some refactoring');
+            expect(eq.toString(), equals('((str (a)) <- ("hello"))'));
+        });
     });
 }

@@ -24,7 +24,7 @@
 
 <declare> -> <type-pair>;
 
-<assign> -> <name> = <expr>
+<define> -> <name> <- <expr>
 
 <expr> -> <stmt> ;
 
@@ -53,6 +53,9 @@
   | /
   | |
   | &
+  | =
+
+<assign> -> <-
 
 <name> -> <alpha><alpha-num>
   | <alpha>
@@ -70,3 +73,4 @@
 <date> -> \d{2}/\d{2}/\d{2}
 
 <null> -> null
+

@@ -11,13 +11,28 @@ class Node {
         : children = new List<Node>();
 
     addChild(Node n) {
-        this.children.add(n);
+        children.add(n);
     }
 
     childAt(int i) {
-        return this.children[i];
+        return children[i];
+    }
+
+    String toString() {
+        int half = children.length ~/ 2;
+        String ret = '(';
+        for (int i = 0; i < half; i++) {
+            ret += childAt(i).toString() + ' ';
+        }
+        ret += value;
+        for (int i = half; i < children.length; i++) {
+            ret += ' ' + childAt(i).toString();
+        }
+        ret += ')';
+        return ret;
     }
 }
+
 
 class ParserError extends Error {
     String msg;
@@ -27,9 +42,11 @@ class ParserError extends Error {
     String toString() => this.msg;
 }
 
+
 Node parse(SimpleStream<Token> ss) {
     return null;
 }
+
 
 Node parse_definition(SimpleStream<Token> ss) {
     Node type = parse_type(ss);
@@ -37,16 +54,17 @@ Node parse_definition(SimpleStream<Token> ss) {
     if (ss.peek().type == TokenType.semicolon) {
         ss.next();
         return type;
-    } else if (ss.peek().type != TokenType.operator
-            && ss.peek().symbol != '=') {
-        throw new ParserError('Expected ";" or "="');
+    } else if (ss.hasNext() && (ss.peek().type != TokenType.assign)) {
+        print('${ss.peek().type} ${ss.peek().symbol}');
+        //throw new ParserError('Expected ";" or "<-"');
     } else {
-        Node eq = new Node(type: 'operator', value: ss.next().symbol);
+        Node eq = new Node(type: 'assign', value: ss.next().symbol);
         eq.addChild(type);
-        eq.addChild(parse_str(ss)); // TODO change expression
+        eq.addChild(parse_str(ss)); // TODO change to expression
+        return eq;
     }
-    return type;
 }
+
 
 Node parse_name(SimpleStream<Token> ss) {
     if (ss.peek().type != TokenType.name)
@@ -54,18 +72,26 @@ Node parse_name(SimpleStream<Token> ss) {
     return new Node(type: 'name', value: ss.next().symbol);
 }
 
+
 Node parse_type(SimpleStream<Token> ss) {
     if (ss.peek().type != TokenType.type)
         throw new ParserError('Expected a type');
     return new Node(type: 'type', value: ss.next().symbol);
 }
 
+
 Node parse_str(SimpleStream<Token> ss) {
-    if (ss.peek().type != TokenType.literal
-            && ! STRING_LITERAL.hasMatch(ss.peek().symbol))
+    if (ss.peek().type != TokenType.str)
         throw new ParserError('Expected a str');
     return new Node(type: 'str', value: ss.next().symbol);
 }
 
+
 main() {
+    String script = '''
+        str a <- "hello";
+    ''';
+    SimpleStream<Token> ss = new SimpleStream<Token>(
+        new List<Token>.from(tokenize(script)));
+    print(parse_definition(ss));
 }

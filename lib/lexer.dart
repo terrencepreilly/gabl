@@ -11,13 +11,15 @@ RegExp DELIMITERS = new RegExp(r'[\(\)\{\}\;\,]');
 
 List<String> TYPES = const ['num', 'str', 'bool', 'date'];
 List<String> CTRLS = const ['if', 'while', 'for', 'else'];
-List<String> OPERS = const ['+', '-', '*', '/'];
+List<String> OPERS = const ['+', '-', '*', '/', '='];
 
 enum TokenType {
     submodule,
     name,
     type,
-    literal,
+    str,
+    bool,
+    num,
     control,
     operator,
     openblock,
@@ -25,6 +27,7 @@ enum TokenType {
     openparen,
     closeparen,
     semicolon,
+    assign,
 }
 
 
@@ -46,16 +49,20 @@ class Token {
             return TokenType.closeparen;
         else if (';' == this.symbol)
             return TokenType.semicolon;
+        else if ('<-' == this.symbol)
+            return TokenType.assign;
         else if (TYPES.any((x) => x == this.symbol))
             return TokenType.type;
         else if (CTRLS.any((x) => x == this.symbol))
             return TokenType.control;
         else if (OPERS.any((x) => x == this.symbol))
             return TokenType.operator;
-        else if (NUMERIC_LITERAL.hasMatch(this.symbol)
-            || STRING_LITERAL.hasMatch(this.symbol)
-            || BOOL_LITERAL.hasMatch(this.symbol))
-            return TokenType.literal;
+        else if (NUMERIC_LITERAL.hasMatch(this.symbol))
+            return TokenType.num;
+        else if (STRING_LITERAL.hasMatch(this.symbol))
+            return TokenType.str;
+        else if (BOOL_LITERAL.hasMatch(this.symbol))
+            return TokenType.bool;
         return TokenType.name;
     }
 
@@ -71,7 +78,6 @@ Iterable tokenize(String script) sync* {
     SimpleStream<String> ss = new SimpleStream(new List<String>.from(iter));
 
     while (ss.hasNext()) {
-        // handle string literals!
         if (CHARACTER.hasMatch(ss.peek())) {
             while (ss.hasNext()
                     && (CHARACTER.hasMatch(ss.peek())
@@ -86,7 +92,15 @@ Iterable tokenize(String script) sync* {
             }
             yield new Token(buff);
             buff = '';
-
+        } else if (ss.peek() == '<') {
+            buff += ss.next();
+            if (ss.hasNext() && ss.peek() != '-') {
+                yield new Token(buff);
+                buff = '';
+            } else if (ss.hasNext()) {
+                yield new Token(buff + ss.next());
+                buff = '';
+            }
         } else if (OPERATORS.hasMatch(ss.peek())
                 || DELIMITERS.hasMatch(ss.peek())) {
             yield new Token(ss.next());
