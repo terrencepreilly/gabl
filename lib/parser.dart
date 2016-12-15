@@ -68,52 +68,41 @@ Node parse_expression(SimpleStream<Token> ss) {
 }
 
 Node parse_exp_literal(SimpleStream<Token> ss) {
-//    if (! const [TokenType.num].contains(ss.peek().type)) {
-//        throw new ParserError('Expected literal or number');
-//    }
-
     Node n = parse_literal(ss);
-//    if (! ss.hasNext())
-//        throw new ParserError('Unexpected end of expression');
-    if (ss.peek().type == TokenType.operator)
+    if (ss.peek().type == TokenType.operator) {
         return parse_exp_operator(ss, n);
-//    else if (ss.peek().type == TokenType.closeparen)
-//        ;
-    else if (ss.peek().type == TokenType.semicolon) {
+    } else if (ss.peek().type == TokenType.semicolon) {
         return n;
     }
     else if (ss.peek().type == TokenType.closeparen) {
-        while (ss.hasNext() && ss.peek().type == TokenType.closeparen)
+        while (ss.hasNext() && ss.peek().type == TokenType.closeparen) {
             ss.next();
+        }
         return n;
     }
-//    else
-//        throw new ParserError('Expected operator or ")"');
 }
 
 Node parse_exp_operator(SimpleStream<Token> ss, Node left) {
-//    if (ss.peek().type != TokenType.operator)
-//        throw new ParserError('Expected operator');
     Node o = parse_operator(ss);
     o.addChild(left);
     if (ss.peek().type == TokenType.num) {
         o.addChild(parse_exp_literal(ss));
         return o;
+    } else if (ss.peek().type == TokenType.openparen) {
+        o.addChild(parse_exp_parenthetical(ss));
+        return o;
     }
 }
 
 Node parse_exp_parenthetical(ss) {
-//    if ((! ss.hasNext()) || ss.peek().type != TokenType.openparen)
-//        throw new ParserError('Expected "("');
     ss.next();
     Node n = new Node(type: 'nop', value: '');
-//    if (! ss.hasNext())
-//        throw new ParserError('Unexpected end of expression at "("');
-    if (ss.peek().type == TokenType.num) // returns after close parenthesis
+    if (ss.peek().type == TokenType.num) { // returns after close parenthesis
         n = parse_exp_literal(ss);
+    } else if (ss.peek().type == TokenType.openparen) {
+        n = parse_exp_parenthetical(ss);
+    }
 
-    if (! ss.hasNext() || ss.peek().type == TokenType.semicolon)
-        return n;
     return n;
 }
 
@@ -132,7 +121,6 @@ Node parse_definition(SimpleStream<Token> ss) {
         ss.next();
         return type;
     } else if (ss.hasNext() && (ss.peek().type != TokenType.assign)) {
-        print('${ss.peek().type} ${ss.peek().symbol}');
         //throw new ParserError('Expected ";" or "<-"');
     } else {
         Node eq = new Node(type: 'assign', value: ss.next().symbol);

@@ -33,6 +33,11 @@
   | ( <stmt> )
   | <stmt>
 
+<stmt> -> NULL
+  | <name>|<literal> [<oper> <stmt>]
+  | <submodule> [<oper> <stmt>]
+  | (<stmt>)
+
 
 <param> -> ( [<type-pair>] )
   | ( <type-pair> {,<type-pair>} )
