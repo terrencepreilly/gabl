@@ -31,6 +31,7 @@
 <stmt> -> <name>|<literal> {<oper> <stmt>}
   | <submodule> {<oper> <stmt>}
   | ( <stmt> )
+  | <stmt>
 
 
 <param> -> ( [<type-pair>] )

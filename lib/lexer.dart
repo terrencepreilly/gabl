@@ -20,6 +20,7 @@ enum TokenType {
     str,
     bool,
     num,
+    date,
     control,
     operator,
     openblock,
@@ -72,6 +73,7 @@ class Token {
 }
 
 
+/* TODO: break into individual functions */
 Iterable tokenize(String script) sync* {
     String buff = '';
     Iterable iter = new Iterable.generate(script.length, (int i) => script[i]);
@@ -81,14 +83,17 @@ Iterable tokenize(String script) sync* {
         if (CHARACTER.hasMatch(ss.peek())) {
             while (ss.hasNext()
                     && (CHARACTER.hasMatch(ss.peek())
-                        || NUMERIC.hasMatch(ss.peek()))) {
+                        || NUMERIC.hasMatch(ss.peek())))
                 buff += ss.next();
-            }
             yield new Token(buff);
             buff = '';
         } else if (NUMERIC.hasMatch(ss.peek())) {
-            while (ss.hasNext() && NUMERIC.hasMatch(ss.peek())) {
+            while (ss.hasNext() && NUMERIC.hasMatch(ss.peek()))
                 buff += ss.next();
+            if (ss.hasNext() && ss.peek() == '.') {
+                buff += ss.next();
+                while (ss.hasNext() && NUMERIC.hasMatch(ss.peek()))
+                    buff += ss.next();
             }
             yield new Token(buff);
             buff = '';
@@ -111,9 +116,8 @@ Iterable tokenize(String script) sync* {
                 ss.next();
         } else if (ss.peek() == '"') {
             buff += ss.next();
-            while (ss.hasNext() && ss.peek() != '"') {
+            while (ss.hasNext() && ss.peek() != '"')
                 buff += ss.next();
-            }
             if (ss.hasNext())
                 buff += ss.next();
             yield new Token(buff);

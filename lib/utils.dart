@@ -5,6 +5,11 @@ class SimpleStream<T> {
     SimpleStream(this.contents) :
         this.curr = 0;
 
+    SimpleStream.from(Iterable<T> iter) {
+        this.contents = new List<T>.from(iter);
+        this.curr = 0;
+    }
+
     T peek() {
         return contents[curr];
     }
