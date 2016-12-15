@@ -4,9 +4,19 @@ import '../../lib/lexer.dart';
 import '../../lib/parser.dart';
 import '../../lib/utils.dart';
 
+
 SimpleStream<Token> streamify(String s) {
     return new SimpleStream<Token>.from(tokenize(s));
 }
+
+
+void fromStringExpect(String s, String expected,
+        [Function parser = parse_expression]) {
+    SimpleStream<Token> ss = streamify(s);
+    Node exp = parser(ss);
+    expect(exp.toString(), equals(expected));
+}
+
 
 main() {
     test('can parse name', () {
@@ -52,7 +62,7 @@ main() {
         });
     });
 
-    group('new expression', () { // TODO change name
+    group('expression', () { // TODO change name
         test('can parse empty expression', () {
             String s = ';';
             SimpleStream<Token> ss = streamify(s);
@@ -62,27 +72,15 @@ main() {
         });
 
         test('can parse single value expression', () {
-            String s = '5;';
-            SimpleStream<Token> ss = streamify(s);
-
-            Node exp = parse_expression(ss);
-            expect(exp.toString(), equals('(5)'));
+            fromStringExpect('5;', '(5)');
         });
 
         test('can parse single operator with two values', () {
-            String s = '5 + 2;';
-            SimpleStream<Token> ss = streamify(s);
-
-            Node exp = parse_expression(ss);
-            expect(exp.toString(), equals('((5) + (2))'));
+            fromStringExpect('5 + 2;', '((5) + (2))');
         });
 
         test('can parse multiple operators with values', () {
-            String s = '1 + 2 + 3;';
-            SimpleStream<Token> ss = streamify(s);
-
-            Node exp = parse_expression(ss);
-            expect(exp.toString(), equals('((1) + ((2) + (3)))'));
+            fromStringExpect('1 + 2 + 3;', '((1) + ((2) + (3)))');
         });
 
         test('can parse empty parentheses', () {
@@ -94,27 +92,15 @@ main() {
         });
 
         test('can parse parentheses with single number', () {
-            String s = '(3);';
-            SimpleStream<Token> ss = streamify(s);
-
-            Node exp = parse_expression(ss);
-            expect(exp.toString(), equals('(3)'));
+            fromStringExpect('(3);', '(3)');
         });
 
         test('can parse parentheses with multiple numbers', () {
-            String s = '(3 + 5);';
-            SimpleStream<Token> ss = streamify(s);
-
-            Node exp = parse_expression(ss);
-            expect(exp.toString(), equals('((3) + (5))'));
+            fromStringExpect('(3 + 5);', '((3) + (5))');
         });
 
         test('can parse numbers in and out of parentheses', () {
-            String s = '(3 + 2) + 1;';
-            SimpleStream<Token> ss = streamify(s);
-
-            Node exp = parse_expression(ss);
-            expect(exp.toString(), equals('(((3) + (2)) + (1))'));
+            fromStringExpect('(3 + 2) + 1;', '(((3) + (2)) + (1))');
         });
 
         test('parentheses can change order', () {
@@ -129,21 +115,44 @@ main() {
         });
 
         test('can handle nested paretheses', () {
-            String s = '(((3)));';
-            SimpleStream<Token> ss = streamify(s);
-
-            Node exp = parse_expression(ss);
-            expect(exp.toString(), equals('(3)'));
+            fromStringExpect('(((3)));', '(3)');
         });
 
         test('complicated parenthetical', () {
-            String s = '((3) / (4 + 3)) * 5;';
-            SimpleStream<Token> ss = streamify(s);
-
-            Node exp = parse_expression(ss);
-            expect(exp.toString(), equals(
+            fromStringExpect(
+                '((3) / (4 + 3)) * 5;',
                 '(((3) / ((4) + (3))) * (5));'
-                ));
+                );
+        }, skip: true);
+    });
+
+    group('statement', () {
+        test('null', () { fromStringExpect('', '()', parse_statement); });
+        test('num', () { fromStringExpect('3', '(3)', parse_statement); });
+        test('nums', () {
+            fromStringExpect('3 + 4', '((3) + (4))', parse_statement);
+        });
+        test('three numbers', () {
+            fromStringExpect('3 + 4 + 5', '((3) + ((4) + (5)))', parse_statement);
+        });
+    });
+
+    group('parenthetical', () {
+        test('null', () {
+            fromStringExpect('()', '()', parse_parenthetical);
+        });
+        test('num', () {
+            fromStringExpect('(3)', '(3)', parse_parenthetical);
+        });
+        test('nums', () {
+            fromStringExpect(
+                '(3 + 4 + 5)',
+                '((3) + ((4) + (5)))',
+                parse_parenthetical
+                );
+        });
+        test('nested', () {
+            fromStringExpect('(((9)))', '(9)', parse_parenthetical);
         });
     });
 }

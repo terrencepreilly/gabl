@@ -26,4 +26,12 @@ class SimpleStream<T> {
         while (!f(this.peek()) && this.hasNext())
             this.next();
     }
+
+    void push(T t) {
+        this.contents.add(t);
+    }
+
+    T pop() {
+        this.contents.removeLast();
+    }
 }

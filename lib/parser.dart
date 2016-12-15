@@ -49,61 +49,49 @@ Node parse(SimpleStream<Token> ss) {
 
 
 Node parse_expression(SimpleStream<Token> ss) {
-    if (ss.peek().type == TokenType.semicolon) {
+    if (ss.hasNext() && ss.peek().type == TokenType.semicolon) {
         ss.next();
         return new Node(type: 'nop', value: '');
-    } else if (ss.peek().type == TokenType.num) {
-        return parse_exp_literal(ss);
-    } else if (ss.peek().type == TokenType.openparen) {
-        Node n = parse_exp_parenthetical(ss);
-        if (ss.peek().type == TokenType.operator) {
-            return parse_exp_operator(ss, n);
-        } else if (ss.peek().type == TokenType.semicolon
-                || ss.peek().type == TokenType.closeparen) {
-            return n;
-        } else {
-            throw new ParserError('Expected ";" or operator after ")"');
-        }
     }
-}
-
-Node parse_exp_literal(SimpleStream<Token> ss) {
-    Node n = parse_literal(ss);
-    if (ss.peek().type == TokenType.operator) {
-        return parse_exp_operator(ss, n);
-    } else if (ss.peek().type == TokenType.semicolon) {
-        return n;
-    }
-    else if (ss.peek().type == TokenType.closeparen) {
-        while (ss.hasNext() && ss.peek().type == TokenType.closeparen) {
-            ss.next();
-        }
-        return n;
-    }
-}
-
-Node parse_exp_operator(SimpleStream<Token> ss, Node left) {
-    Node o = parse_operator(ss);
-    o.addChild(left);
-    if (ss.peek().type == TokenType.num) {
-        o.addChild(parse_exp_literal(ss));
-        return o;
-    } else if (ss.peek().type == TokenType.openparen) {
-        o.addChild(parse_exp_parenthetical(ss));
-        return o;
-    }
-}
-
-Node parse_exp_parenthetical(ss) {
-    ss.next();
-    Node n = new Node(type: 'nop', value: '');
-    if (ss.peek().type == TokenType.num) { // returns after close parenthesis
-        n = parse_exp_literal(ss);
-    } else if (ss.peek().type == TokenType.openparen) {
-        n = parse_exp_parenthetical(ss);
-    }
-
+    Node n = parse_statement(ss);
     return n;
+}
+
+
+Node parse_statement(SimpleStream<Token> ss) {
+    if (! ss.hasNext()) {
+        return new Node(type: 'nop', value: '');
+    } else if (ss.peek().type == TokenType.num) {
+        Node n = parse_num(ss);
+        if (ss.hasNext() && ss.peek().type == TokenType.operator) {
+            return parse_operator(ss)
+                    ..addChild(n)
+                    ..addChild(parse_statement(ss));
+        }
+        return n;
+    } else if (ss.peek().type == TokenType.openparen) {
+        Node n = parse_parenthetical(ss);
+        if (ss.hasNext() && ss.peek().type == TokenType.operator)
+            return parse_operator(ss)
+                ..addChild(n)
+                ..addChild(parse_statement(ss));
+        return n;
+    }
+}
+
+Node parse_parenthetical(SimpleStream<Token> ss) {
+    SimpleStream<Token> inner = new SimpleStream<Token>(new List<Token>());
+    int counter = 1;
+    ss.next();
+    while (counter > 0 && ss.hasNext()) {
+        if (ss.peek().type == TokenType.closeparen)
+            counter--;
+        else if (ss.peek().type == TokenType.openparen)
+            counter++;
+        inner.push(ss.next());
+    }
+    inner.pop();
+    return parse_statement(inner);
 }
 
 
