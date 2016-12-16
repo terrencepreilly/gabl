@@ -2,6 +2,7 @@ import 'lexer.dart';
 import 'utils.dart';
 
 
+/// An AST Node.
 class Node {
     String type;
     String value;
@@ -54,6 +55,9 @@ Node parse_expression(SimpleStream<Token> ss) {
         return new Node(type: 'nop', value: '');
     }
     Node n = parse_statement(ss);
+    if (! ss.hasNext() || ss.peek().type != TokenType.semicolon)
+        throw new ParserError('Expected ";"');
+    ss.next();
     return n;
 }
 
@@ -72,19 +76,22 @@ Node parse_statement(SimpleStream<Token> ss) {
         if (ss.hasNext() && ss.peek().type == TokenType.operator)
             return parse_expression_operator(ss, n);
         return n;
+    } else {
+        throw new ParserError('Expected literal, name, function, or parenthetical.');
     }
 }
 
+
 Node parse_expression_operator(SimpleStream<Token> ss, Node n) {
-//    if (ss.peek().type != TokenType.operator)
-//        throw new 
+    List<TokenType> acceptable_types = [TokenType.num, TokenType.openparen];
     Node oper = parse_operator(ss)
         ..addChild(n);
-    if (! ss.hasNext() || ! const [TokenType.num].contains(ss.peek().type))
-        throw new ParserError('Expected a literal, name, or function');
+    if (! ss.hasNext() || ! acceptable_types.contains(ss.peek().type))
+        throw new ParserError('Expected a literal, name, function, or parenthetical');
     oper.addChild(parse_statement(ss));
     return oper;
 }
+
 
 Node parse_parenthetical(SimpleStream<Token> ss) {
     SimpleStream<Token> inner = new SimpleStream<Token>(new List<Token>());

@@ -10,6 +10,7 @@ SimpleStream<Token> streamify(String s) {
 }
 
 
+/// Expect that [s], when parsed, will give the string [expected].
 void fromStringExpect(String s, String expected,
         [Function parser = parse_expression]) {
     SimpleStream<Token> ss = streamify(s);
@@ -18,13 +19,15 @@ void fromStringExpect(String s, String expected,
 }
 
 
+/// Expect an exception to be raised from parsing [s] with [parser].
 bool raisesException(String s, [Function parser = parse_expression]) {
+    bool raised = false;
     try {
         parser(streamify(s));
     } catch(e) {
-        return true;
+        raised = true;
     }
-    return false;
+    expect(raised, equals(true), reason: '"$s" should have raised exception');
 }
 
 
@@ -168,7 +171,45 @@ main() {
 
     group('broken expressions', () {
         test('missing argument', () {
-            expect(raisesException('3 + ;'), equals(true));
+            raisesException('3 + ;');
+            raisesException('+;');
+            raisesException('+6;');
+        });
+        test('missing semicolon', () {
+            raisesException('');
+            raisesException('3');
+            raisesException('3 + 6');
+        });
+        test('multiple operators', () {
+            raisesException('++3;');
+            raisesException('3++6;');
+            raisesException('8**;');
+        });
+        test('mismatched parentheses', () {
+            raisesException('(3 + 6;');
+            raisesException('(5));');
+        });
+
+        test('incorrectly called', () {
+            Function f = (SimpleStream<Token> ss) {
+                parse_expression_operator(ss, new Node(type: 'num', value: '8'));
+            };
+            raisesException('3 + 6;', f);
+            raisesException('(3 + 5);', f);
+            raisesException('', f);
+            raisesException(';', f);
+
+            Function v = (SimpleStream<Token> ss) {
+                parse_expression_operator(ss, new Node(type: 'num', value: '8'));
+            };
+            raisesException('3;', v);
+        });
+    });
+
+    group('broken parenthetical', () {
+        test('incorrectly called', () {
+            raisesException('2 + (3 + 6)', parse_parenthetical);
+            raisesException('(3 + 4', parse_parenthetical);
         });
     });
 }
