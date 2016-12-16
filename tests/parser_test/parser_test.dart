@@ -18,6 +18,16 @@ void fromStringExpect(String s, String expected,
 }
 
 
+bool raisesException(String s, [Function parser = parse_expression]) {
+    try {
+        parser(streamify(s));
+    } catch(e) {
+        return true;
+    }
+    return false;
+}
+
+
 main() {
     test('can parse name', () {
         SimpleStream<Token> ss = streamify('someName');
@@ -62,7 +72,7 @@ main() {
         });
     });
 
-    group('expression', () { // TODO change name
+    group('expression', () {
         test('can parse empty expression', () {
             String s = ';';
             SimpleStream<Token> ss = streamify(s);
@@ -121,9 +131,9 @@ main() {
         test('complicated parenthetical', () {
             fromStringExpect(
                 '((3) / (4 + 3)) * 5;',
-                '(((3) / ((4) + (3))) * (5));'
+                '(((3) / ((4) + (3))) * (5))'
                 );
-        }, skip: true);
+        });
     });
 
     group('statement', () {
@@ -153,6 +163,12 @@ main() {
         });
         test('nested', () {
             fromStringExpect('(((9)))', '(9)', parse_parenthetical);
+        });
+    });
+
+    group('broken expressions', () {
+        test('missing argument', () {
+            expect(raisesException('3 + ;'), equals(true));
         });
     });
 }

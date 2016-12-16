@@ -64,19 +64,26 @@ Node parse_statement(SimpleStream<Token> ss) {
     } else if (ss.peek().type == TokenType.num) {
         Node n = parse_num(ss);
         if (ss.hasNext() && ss.peek().type == TokenType.operator) {
-            return parse_operator(ss)
-                    ..addChild(n)
-                    ..addChild(parse_statement(ss));
+            return parse_expression_operator(ss, n);
         }
         return n;
     } else if (ss.peek().type == TokenType.openparen) {
         Node n = parse_parenthetical(ss);
         if (ss.hasNext() && ss.peek().type == TokenType.operator)
-            return parse_operator(ss)
-                ..addChild(n)
-                ..addChild(parse_statement(ss));
+            return parse_expression_operator(ss, n);
         return n;
     }
+}
+
+Node parse_expression_operator(SimpleStream<Token> ss, Node n) {
+//    if (ss.peek().type != TokenType.operator)
+//        throw new 
+    Node oper = parse_operator(ss)
+        ..addChild(n);
+    if (! ss.hasNext() || ! const [TokenType.num].contains(ss.peek().type))
+        throw new ParserError('Expected a literal, name, or function');
+    oper.addChild(parse_statement(ss));
+    return oper;
 }
 
 Node parse_parenthetical(SimpleStream<Token> ss) {
