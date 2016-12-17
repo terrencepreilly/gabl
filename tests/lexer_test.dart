@@ -12,6 +12,8 @@ void main() {
         test('name can be detected', () {
             Token e = new Token('aParameterName');
             expect(e.type, equals(TokenType.name));
+            e = new Token('n1');
+            expect(e.type, equals(TokenType.name));
         });
 
         test('type (int, string, etc.) can be detected', () {
@@ -43,11 +45,13 @@ void main() {
             expect(new Token('while').type, equals(TokenType.control));
             expect(new Token('for').type, equals(TokenType.control));
             expect(new Token('else').type, equals(TokenType.control));
+            expect(new Token('elif').type, equals(TokenType.control));
         });
 
         test('operators can be detected', () {
             expect(new Token('+').type, equals(TokenType.operator));
             expect(new Token('=').type, equals(TokenType.operator));
+            expect(new Token('>').type, equals(TokenType.operator));
         });
 
         test('assignment can be detected', () {
@@ -62,6 +66,10 @@ void main() {
         test('parentheses can be detected', () {
             expect(new Token('(').type, equals(TokenType.openparen));
             expect(new Token(')').type, equals(TokenType.closeparen));
+        });
+
+        test('commas can be detected', () {
+            expect(new Token(',').type, equals(TokenType.comma));
         });
     });
 
@@ -92,6 +100,27 @@ void main() {
             expect(tokens.length, equals(1));
             expect(tokens[0].toString(), equals('"hello"'));
             expect(tokens[0].type, equals(TokenType.str));
+        });
+        test('tokenize can pull out a comma', () {
+            String s = '(num a, num b)';
+            Iterable<Token> d = tokenize(s);
+            List<Token> tokens = new List<Token>.from(d);
+            expect(tokens.length, equals(7));
+            expect(tokens[3].type, equals(TokenType.comma));
+        });
+        test('tokenize can lex a comparison', () {
+            String s = 'a > 0';
+            Iterable<Token> d = tokenize(s);
+            List<Token> tokens = new List<Token>.from(d);
+            expect(tokens.length, equals(3));
+            expect(tokens[1].type, equals(TokenType.operator));
+        });
+        test('tokenize can lex a control', () {
+            String s = 'if () {} elif () {}';
+            Iterable<Token> d = tokenize(s);
+            List<Token> tokens = new List<Token>.from(d);
+            expect(tokens.length, equals(10));
+            expect(tokens[5].type, equals(TokenType.control));
         });
     });
 }

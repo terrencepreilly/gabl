@@ -1,17 +1,17 @@
 import 'utils.dart';
 
 RegExp STRING_LITERAL = new RegExp(r'".*?"');
-RegExp NUMERIC_LITERAL = new RegExp(r'[\d\.]+');
+RegExp NUMERIC_LITERAL = new RegExp(r'\b\d+\.?\d*');
 RegExp BOOL_LITERAL = new RegExp(r'true|false');
 
 RegExp CHARACTER = new RegExp(r'[a-zA-Z]');
 RegExp NUMERIC = new RegExp(r'\d');
-RegExp OPERATORS = new RegExp(r'[\+\-\*\/]');
+RegExp OPERATORS = new RegExp(r'[\+\-\*\/><]');
 RegExp DELIMITERS = new RegExp(r'[\(\)\{\}\;\,]');
 
 List<String> TYPES = const ['num', 'str', 'bool', 'date'];
-List<String> CTRLS = const ['if', 'while', 'for', 'else'];
-List<String> OPERS = const ['+', '-', '*', '/', '='];
+List<String> CTRLS = const ['if', 'while', 'for', 'else', 'elif'];
+List<String> OPERS = const ['+', '-', '*', '/', '=', '>', '<'];
 
 enum TokenType {
     submodule,
@@ -29,6 +29,7 @@ enum TokenType {
     closeparen,
     semicolon,
     assign,
+    comma,
 }
 
 
@@ -40,6 +41,8 @@ class Token {
     TokenType get type {
         if (this.symbol == 'sub')
             return TokenType.submodule;
+        else if (',' == this.symbol)
+            return TokenType.comma;
         else if ('{' == this.symbol)
             return TokenType.openblock;
         else if ('}' == this.symbol)

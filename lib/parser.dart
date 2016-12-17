@@ -1,6 +1,13 @@
 import 'lexer.dart';
 import 'utils.dart';
 
+const List<TokenType> LITERAL = const [
+    TokenType.num,
+    TokenType.str,
+    TokenType.bool,
+    TokenType.date,
+    ];
+
 
 /// An AST Node.
 class Node {
@@ -22,13 +29,16 @@ class Node {
     String toString() {
         int half = children.length ~/ 2;
         String ret = '(';
-        for (int i = 0; i < half; i++) {
-            ret += childAt(i).toString() + ' ';
+        ret += children.getRange(0, half).join(' ');
+        if (half > 0) {
+            if (value != '')
+                ret += ' ' + value + ' ';
+            else if (type == 'block' || type == 'parameters')
+                ret += ' ';
+        } else {
+            ret += value;
         }
-        ret += value;
-        for (int i = half; i < children.length; i++) {
-            ret += ' ' + childAt(i).toString();
-        }
+        ret += children.getRange(half, children.length).join(' ');
         ret += ')';
         return ret;
     }
@@ -62,12 +72,92 @@ Node parse_expression(SimpleStream<Token> ss) {
 }
 
 
+Node parse_if_statement(SimpleStream<Token> ss) {
+    if (ss.peek().type != TokenType.control
+            || ss.peek().symbol != 'if')
+        throw new ParserError('Expected "if"');
+
+    Node n = new Node(type: 'control', value: 'if');
+    ss.next();
+    n.addChild(parse_parenthetical(ss));
+    n.addChild(parse_block(ss));
+    if (ss.hasNext() && ss.peek().type == TokenType.control) {
+        if (ss.peek().symbol == 'elif')
+            n.addChild(parse_elif_statement(ss));
+        else if (ss.peek().symbol == 'else')
+            n.addChild(parse_else_statement(ss));
+    }
+    return n;
+}
+
+
+Node parse_elif_statement(SimpleStream<Token> ss) {
+    // TODO Combine these three if-controls somehow.
+    if (ss.peek().type != TokenType.control
+            || ss.peek().symbol != 'elif')
+        throw new ParserError('Expected "elif"');
+
+    Node n = new Node(type: 'control', value: 'elif');
+    ss.next();
+    n.addChild(parse_parenthetical(ss));
+    n.addChild(parse_block(ss));
+    if (ss.hasNext() && ss.peek().type == TokenType.control) {
+        if (ss.peek().symbol == 'elif')
+            n.addChild(parse_elif_statement(ss));
+        else if (ss.peek().symbol == 'else')
+            n.addChild(parse_else_statement(ss));
+    }
+    return n;
+}
+
+
+Node parse_else_statement(SimpleStream<Token> ss) {
+    if (ss.peek().type != TokenType.control
+            || ss.peek().symbol != 'else')
+        throw new ParserError('Expected "else"');
+
+    Node n = new Node(type: 'control', value: 'else');
+    ss.next();
+    n.addChild(parse_block(ss));
+    return n;
+}
+
+
+Node parse_parameters(SimpleStream<Token> ss) {
+    if (ss.peek().type != TokenType.openparen)
+        throw new ParserError('Expected "("');
+    ss.next();
+    Node params = new Node(type: 'parameters', value: '');
+    while (ss.hasNext() && ss.peek().type == TokenType.type) {
+        Node param = parse_type(ss);
+        param.addChild(parse_name(ss));
+        params.addChild(param);
+        if (ss.peek().type == TokenType.comma)
+            ss.next();
+    }
+    if (! ss.hasNext() || ss.peek().type != TokenType.closeparen)
+        throw new ParserError('Expected ")"');
+    ss.next();
+    return params;
+}
+
+
 Node parse_statement(SimpleStream<Token> ss) {
     if (! ss.hasNext()) {
         return new Node(type: 'nop', value: '');
-    } else if (ss.peek().type == TokenType.num) {
-        Node n = parse_num(ss);
-        if (ss.hasNext() && ss.peek().type == TokenType.operator) {
+    } else if (LITERAL.contains(ss.peek().type)) {
+        Node n = parse_literal(ss);
+        if (ss.hasNext()
+                && (ss.peek().type == TokenType.operator
+                    || ss.peek().type == TokenType.assign)) {
+            return parse_expression_operator(ss, n);
+        }
+        return n;
+    } else if (ss.peek().type == TokenType.name) {
+        Node n = parse_name(ss);
+        if (ss.hasNext()
+                && (ss.peek().type == TokenType.operator
+                    || ss.peek().type == TokenType.assign)) {
             return parse_expression_operator(ss, n);
         }
         return n;
@@ -86,8 +176,12 @@ Node parse_expression_operator(SimpleStream<Token> ss, Node n) {
     List<TokenType> acceptable_types = [TokenType.num, TokenType.openparen];
     Node oper = parse_operator(ss)
         ..addChild(n);
-    if (! ss.hasNext() || ! acceptable_types.contains(ss.peek().type))
+    if (! ss.hasNext() || (! LITERAL.contains(ss.peek().type)
+                           && ss.peek().type != TokenType.name
+                           && (ss.peek().type != TokenType.openparen
+                               && ss.peek().type != TokenType.assign))) {
         throw new ParserError('Expected a literal, name, function, or parenthetical');
+    }
     oper.addChild(parse_statement(ss));
     return oper;
 }
@@ -109,10 +203,33 @@ Node parse_parenthetical(SimpleStream<Token> ss) {
 }
 
 
+/// Parse a section enclosed in `{}`.
+Node parse_block(SimpleStream<Token> ss) {
+    if (ss.peek().type != TokenType.openblock)
+        throw new ParserError('Expected {');
+    ss.next();
+    Node n = new Node(type: 'block', value: '');
+    while (ss.hasNext() && ss.peek().type != TokenType.closeblock) {
+        if (ss.peek().type == TokenType.openblock) {
+            n.addChild(parse_block(ss));
+        } else {
+            n.addChild(parse_expression(ss));
+        }
+    }
+    if (! ss.hasNext() || ss.peek().type != TokenType.closeblock)
+        throw new ParserError('Expected }');
+    ss.next();
+    return n;
+}
+
+
 Node parse_operator(SimpleStream<Token> ss) {
-    if (ss.peek().type != TokenType.operator)
+    if (ss.peek().type != TokenType.operator && ss.peek().type != TokenType.assign)
         throw new ParserError('Expected an operator');
-    return new Node(type: 'operator', value: ss.next().symbol);
+    if (ss.peek().type == TokenType.operator)
+        return new Node(type: 'operator', value: ss.next().symbol);
+    else if (ss.peek().type == TokenType.assign)
+        return new Node(type: 'assign', value: ss.next().symbol);
 }
 
 
@@ -147,8 +264,7 @@ Node parse_type(SimpleStream<Token> ss) {
 }
 
 Node parse_literal(SimpleStream<Token> ss) {
-    if (! const [TokenType.bool, TokenType.str,
-                 TokenType.num, TokenType.date].contains(ss.peek().type))
+    if (! LITERAL.contains(ss.peek().type))
         throw new ParserError('Expected a literal type');
     switch (ss.peek().type) {
         case TokenType.bool:
@@ -194,5 +310,4 @@ main() {
     ''';
     SimpleStream<Token> ss = new SimpleStream<Token>(
         new List<Token>.from(tokenize(script)));
-    print(parse_expression(ss));
 }

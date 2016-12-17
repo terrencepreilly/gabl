@@ -71,7 +71,7 @@ main() {
             SimpleStream<Token> ss = streamify(s);
 
             Node eq = parse_definition(ss);
-            expect(eq.toString(), equals('((str (a)) <- ("hello"))'));
+            expect(eq.toString(), equals('((str(a)) <- ("hello"))'));
         });
     });
 
@@ -137,6 +137,20 @@ main() {
                 '(((3) / ((4) + (3))) * (5))'
                 );
         });
+
+        test('other types', () {
+            fromStringExpect(
+                '(true + "a") - (5 * name1);',
+                '(((true) + ("a")) - ((5) * (name1)))',
+                );
+        });
+
+        test('assignment expression', () {
+            fromStringExpect(
+                'a <- a + 1;',
+                '((a) <- ((a) + (1)))',
+                );
+        });
     });
 
     group('statement', () {
@@ -147,6 +161,19 @@ main() {
         });
         test('three numbers', () {
             fromStringExpect('3 + 4 + 5', '((3) + ((4) + (5)))', parse_statement);
+        });
+
+        test('strings', () {
+            fromStringExpect('"a" + "b"', '(("a") + ("b"))', parse_statement);
+        });
+        test('bool', () {
+            fromStringExpect('true * false', '((true) * (false))', parse_statement);
+        });
+        test('name', () {
+            fromStringExpect('name1 + name2', '((name1) + (name2))', parse_statement);
+        });
+        test('comparison', () {
+            fromStringExpect('a > 0', '((a) > (0))', parse_statement);
         });
     });
 
@@ -210,6 +237,113 @@ main() {
         test('incorrectly called', () {
             raisesException('2 + (3 + 6)', parse_parenthetical);
             raisesException('(3 + 4', parse_parenthetical);
+        });
+    });
+
+    group('block', () {
+        test('null', () {
+            fromStringExpect('{}', '()', parse_block);
+        });
+        test('simple', () {
+            // TODO Normalize the string output of nodes so it makes sense.
+            fromStringExpect('{ 3; 3 + 5; }', '((3) ((3) + (5)))', parse_block);
+            fromStringExpect('{ 3 + (5 * 2); }', '(((3) + ((5) * (2))))', parse_block);
+        });
+        test('nested', () {
+            fromStringExpect('{{}}', '(())', parse_block);
+        });
+
+        group('broken', () {
+            test('missing {', () { raisesException('}', parse_block); });
+            test('missing }', () { raisesException('{', parse_block); });
+        });
+    });
+
+    group('parameters', () {
+        test('null', () {
+            fromStringExpect('()', '()', parse_parameters);
+        });
+        test('single parameter', () {
+            fromStringExpect('(num a)', '((num(a)))', parse_parameters);
+        });
+        test('multiple parameters', () {
+            fromStringExpect('(num a, str s)', '((num(a)) (str(s)))', parse_parameters);
+            fromStringExpect(
+                '(num n1, num n2, num n3, num n4)',
+                '((num(n1)) (num(n2)) (num(n3)) (num(n4)))',
+                parse_parameters,
+                );
+        });
+    });
+
+    group('if statement', () {
+        test('null', () {
+            fromStringExpect(
+                'if (true) {}',
+                '((true) if ())',
+                parse_if_statement,
+                );
+        });
+        test('simple', () {
+            String script = '''
+                if (a > 0) {
+                    a <- a + 1;
+                }
+                ''';
+            fromStringExpect(
+                script,
+                '(((a) > (0)) if (((a) <- ((a) + (1)))))',
+                parse_if_statement,
+                );
+        });
+        test('multiple', () {
+            String script = '''
+                if ((a + 1) > 0) {
+                    a <- a + 1;
+                    a <- a / 2;
+                }
+                ''';
+            fromStringExpect(
+                script,
+                '((((a) + (1)) > (0)) if ' +
+                    '(((a) <- ((a) + (1))) ((a) <- ((a) / (2)))))',
+                parse_if_statement,
+                );
+        });
+        test('with else if', () {
+            String script = '''
+                if (a > 0) {}
+                elif (a < 0) {}
+                ''';
+            fromStringExpect(
+                script,
+                '(((a) > (0)) if () (((a) < (0)) elif ()))',
+                parse_if_statement,
+                );
+        });
+        test('with else', () {
+            String script = '''
+                if (false) {}
+                else {}
+                ''';
+            fromStringExpect(
+                script,
+                '((false) if () (else()))',
+                parse_if_statement,
+                );
+        });
+        test('with else-if chains', () {
+            String script = '''
+                if (a) {}
+                elif (b) {}
+                elif (c) {}
+                else {}
+                ''';
+            fromStringExpect(
+                script,
+                '((a) if () ((b) elif () ((c) elif () (else()))))',
+                parse_if_statement,
+                );
         });
     });
 }
