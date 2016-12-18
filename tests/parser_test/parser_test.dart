@@ -151,6 +151,22 @@ main() {
                 '((a) <- ((a) + (1)))',
                 );
         });
+        test('return', () {
+            fromStringExpect(
+                'return 0;',
+                '(return(0))',
+                );
+        });
+        test('submodule calls', () {
+            fromStringExpect(
+                'double(x);',
+                '((double) call ((x)))',
+                );
+            fromStringExpect(
+                'combine(x, x2, 5*3);',
+                '((combine) call ((x)(x2) ((5) * (3))))',
+                );
+        });
     });
 
     group('statement', () {
@@ -261,17 +277,65 @@ main() {
 
     group('parameters', () {
         test('null', () {
-            fromStringExpect('()', '()', parse_parameters);
+            fromStringExpect('()', '()', parse_parameters_definition);
         });
         test('single parameter', () {
-            fromStringExpect('(num a)', '((num(a)))', parse_parameters);
+            fromStringExpect(
+                '(num a)',
+                '((num(a)))',
+                parse_parameters_definition,
+                );
         });
         test('multiple parameters', () {
-            fromStringExpect('(num a, str s)', '((num(a)) (str(s)))', parse_parameters);
+            fromStringExpect(
+                '(num a, str s)',
+                '((num(a)) (str(s)))',
+                parse_parameters_definition,
+                );
             fromStringExpect(
                 '(num n1, num n2, num n3, num n4)',
                 '((num(n1)) (num(n2)) (num(n3)) (num(n4)))',
-                parse_parameters,
+                parse_parameters_definition,
+                );
+        });
+    });
+
+    group('while loop', () {
+        test('null', () {
+            fromStringExpect(
+                'while (true) {}',
+                '((true) while ())',
+                parse_while,
+                );
+        });
+        test('simple', () {
+            fromStringExpect(
+                'while (a < 0) { a <- a + 1; }',
+                '(((a) < (0)) while (((a) <- ((a) + (1)))))',
+                parse_while,
+                );
+        });
+    });
+
+    group('for loop', () {
+        test('null', () {
+            fromStringExpect(
+                'for (; ;) {}',
+                '((()() ()) for ())',
+                parse_for,
+                );
+        });
+        test('simple', () {
+            String script = '''
+                for (a <- 0; a > 0 ;a <- a + 1) {
+                    b <- b + a;
+                }
+            ''';
+            fromStringExpect(
+                script,
+                '((((a) <- (0))((a) > (0)) ((a) <- ((a) + (1)))) ' +
+                    'for (((b) <- ((b) + (a)))))',
+                parse_for,
                 );
         });
     });
@@ -343,6 +407,31 @@ main() {
                 script,
                 '((a) if () ((b) elif () ((c) elif () (else()))))',
                 parse_if_statement,
+                );
+        });
+    });
+
+    group('submodule', () {
+        test('null', () {
+            String script = '''
+                sub A() {}
+                ''';
+            fromStringExpect(
+                script,
+                '(() A ())',
+                parse_submodule,
+                );
+        });
+        test('with return', () {
+            String script = '''
+                sub double(num a) {
+                    return a * 2;
+                }
+                ''';
+            fromStringExpect(
+                script,
+                '(((num(a))) double ((return((a) * (2)))))',
+                parse_submodule,
                 );
         });
     });

@@ -10,7 +10,7 @@ RegExp OPERATORS = new RegExp(r'[\+\-\*\/><]');
 RegExp DELIMITERS = new RegExp(r'[\(\)\{\}\;\,]');
 
 List<String> TYPES = const ['num', 'str', 'bool', 'date'];
-List<String> CTRLS = const ['if', 'while', 'for', 'else', 'elif'];
+List<String> CTRLS = const ['if', 'while', 'for', 'else', 'elif', 'return'];
 List<String> OPERS = const ['+', '-', '*', '/', '=', '>', '<'];
 
 enum TokenType {

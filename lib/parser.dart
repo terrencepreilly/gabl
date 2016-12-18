@@ -33,7 +33,8 @@ class Node {
         if (half > 0) {
             if (value != '')
                 ret += ' ' + value + ' ';
-            else if (type == 'block' || type == 'parameters')
+            else if (type == 'block'
+                    || type == 'parameters')
                 ret += ' ';
         } else {
             ret += value;
@@ -56,6 +57,57 @@ class ParserError extends Error {
 
 Node parse(SimpleStream<Token> ss) {
     return null;
+}
+
+
+Node parse_submodule(SimpleStream<Token> ss) {
+    if (! ss.hasNext()
+            || (ss.peek().type != TokenType.submodule
+                && ss.peek().symbol != 'sub'))
+        throw new ParserError('Expected sub');
+    ss.next();
+    return new Node(type: 'submodule', value: parse_name(ss).value)
+        ..addChild(parse_parameters_definition(ss))
+        ..addChild(parse_block(ss));
+}
+
+
+Node parse_while(SimpleStream<Token> ss) {
+    if (! ss.hasNext()
+            || (ss.peek().type != TokenType.control
+                && ss.peek().symbol != 'while'))
+        throw new ParserError('Expected "while"');
+    ss.next();
+    return new Node(type: 'control', value: 'while')
+        ..addChild(parse_parenthetical(ss))
+        ..addChild(parse_block(ss));
+}
+
+
+Node parse_for(SimpleStream<Token> ss) {
+    if (! ss.hasNext()
+            || (ss.peek().type != TokenType.control
+                && ss.peek().symbol != 'for'))
+        throw new ParserError('Expected "for"');
+    ss.next();
+    return new Node(type: 'control', value: 'for')
+        ..addChild(parse_for_condition(ss))
+        ..addChild(parse_block(ss));
+}
+
+
+Node parse_for_condition(SimpleStream<Token> ss) {
+    if (! ss.hasNext() || ss.peek().type != TokenType.openparen)
+        throw new ParserError('Expected "("');
+    ss.next();
+    Node n = new Node(type: 'condition', value: '');
+    n.addChild(parse_expression(ss));
+    n.addChild(parse_expression(ss));
+    n.addChild(parse_statement(ss));
+    if (! ss.hasNext() || ss.peek().type != TokenType.closeparen)
+        throw new ParserError('Expected ")"');
+    ss.next();
+    return n;
 }
 
 
@@ -123,7 +175,7 @@ Node parse_else_statement(SimpleStream<Token> ss) {
 }
 
 
-Node parse_parameters(SimpleStream<Token> ss) {
+Node parse_parameters_definition(SimpleStream<Token> ss) {
     if (ss.peek().type != TokenType.openparen)
         throw new ParserError('Expected "("');
     ss.next();
@@ -134,6 +186,27 @@ Node parse_parameters(SimpleStream<Token> ss) {
         params.addChild(param);
         if (ss.peek().type == TokenType.comma)
             ss.next();
+    }
+    if (! ss.hasNext() || ss.peek().type != TokenType.closeparen)
+        throw new ParserError('Expected ")"');
+    ss.next();
+    return params;
+}
+
+Node parse_parameters_call(SimpleStream<Token> ss) {
+    if (ss.peek().type != TokenType.openparen)
+        throw new ParserError('Expected "("');
+    ss.next();
+    Node params = new Node(type: 'arguments', value: '');
+    while (ss.hasNext() && ss.peek().type != TokenType.closeparen) {
+        SimpleStream<Token> arg = new SimpleStream<Token>([]);
+        while (ss.hasNext()
+                && ss.peek().type != TokenType.comma
+                && ss.peek().type != TokenType.closeparen)
+            arg.push(ss.next());
+        if (ss.hasNext() && ss.peek().type == TokenType.comma)
+            ss.next();
+        params.addChild(parse_statement(arg));
     }
     if (! ss.hasNext() || ss.peek().type != TokenType.closeparen)
         throw new ParserError('Expected ")"');
@@ -159,6 +232,10 @@ Node parse_statement(SimpleStream<Token> ss) {
                 && (ss.peek().type == TokenType.operator
                     || ss.peek().type == TokenType.assign)) {
             return parse_expression_operator(ss, n);
+        } else if (ss.hasNext() && ss.peek().type == TokenType.openparen) {
+            return new Node(type: 'sub-call', value: 'call')
+                ..addChild(n)
+                ..addChild(parse_parameters_call(ss));
         }
         return n;
     } else if (ss.peek().type == TokenType.openparen) {
@@ -166,9 +243,31 @@ Node parse_statement(SimpleStream<Token> ss) {
         if (ss.hasNext() && ss.peek().type == TokenType.operator)
             return parse_expression_operator(ss, n);
         return n;
+    } else if (ss.peek().type == TokenType.closeparen) {
+        return new Node(type: 'nop', value: '');
+    } else if (ss.peek().type == TokenType.control) {
+        return parse_expression_control(ss);
     } else {
         throw new ParserError('Expected literal, name, function, or parenthetical.');
     }
+}
+
+
+Node parse_expression_control(SimpleStream<Token> ss) {
+    if (! ss.hasNext() || ss.peek().type != TokenType.control)
+        throw new ParserError('Expected a control statement such as "if", "while", etc.');
+    if (ss.peek().symbol == 'return')
+        return parse_expression_return(ss);
+}
+
+Node parse_expression_return(SimpleStream<Token> ss) {
+    if (! ss.hasNext()
+            || ss.peek().type != TokenType.control
+            || ss.peek().symbol != 'return')
+        throw new ParserError('Expected "return"');
+    ss.next();
+    return new Node(type: 'control', value: 'return')
+        ..addChild(parse_statement(ss));
 }
 
 
@@ -306,8 +405,14 @@ Node parse_bool(SimpleStream<Token> ss) {
 
 main() {
     String script = '''
-        3 + (5 / (1 + 7)) * 2;
-    ''';
+        sub double(num a) {
+            return a * 2;
+        }
+        ''';
     SimpleStream<Token> ss = new SimpleStream<Token>(
         new List<Token>.from(tokenize(script)));
+    Node n = parse_submodule(ss);
+    print(n);
+    print(n.childAt(0));
+    print(n.childAt(0).type);
 }

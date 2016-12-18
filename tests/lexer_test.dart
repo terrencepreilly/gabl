@@ -115,12 +115,20 @@ void main() {
             expect(tokens.length, equals(3));
             expect(tokens[1].type, equals(TokenType.operator));
         });
-        test('tokenize can lex a control', () {
+        test('tokenize can lex an if control', () {
             String s = 'if () {} elif () {}';
             Iterable<Token> d = tokenize(s);
             List<Token> tokens = new List<Token>.from(d);
             expect(tokens.length, equals(10));
             expect(tokens[5].type, equals(TokenType.control));
+        });
+        test('tokenize can lex a return', () {
+            String s = 'return 5;';
+            Iterable<Token> d = tokenize(s);
+            List<Token> tokens = new List<Token>.from(d);
+            expect(tokens.length, equals(3));
+            expect(tokens[0].type, equals(TokenType.control));
+            expect(tokens[0].symbol, equals('return'));
         });
     });
 }

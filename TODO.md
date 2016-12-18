@@ -4,14 +4,17 @@ _\( managed using [todo-md](https://github.com/Hypercubed/todo-md) \)_
 
 - [x] statements
 - [x] expressions
-- [ ] parameter lists
+- [x] parameter lists
 - [x] definitions
-- [ ] sequence
-- [ ] return statements
-- [ ] block
-- [ ] if statements
+- [x] sequence
+- [x] return statements
+- [x] block
+- [x] if statements
 - [ ] submodule
-- [ ] while loop
-- [ ] for loop
+  - [ ] calling subs in submodules
+  - [ ] calling subs with named parameters
+- [x] while loop
+- [x] for loop
 - [ ] handle/except
 - [ ] import
+- [ ] script
