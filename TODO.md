@@ -11,10 +11,11 @@ _\( managed using [todo-md](https://github.com/Hypercubed/todo-md) \)_
 - [x] block
 - [x] if statements
 - [ ] submodule
-  - [ ] calling subs in submodules
+  - [x] calling subs in submodules
   - [ ] calling subs with named parameters
 - [x] while loop
 - [x] for loop
 - [ ] handle/except
 - [ ] import
 - [ ] script
+- [ ] refactor

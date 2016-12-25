@@ -405,14 +405,10 @@ Node parse_bool(SimpleStream<Token> ss) {
 
 main() {
     String script = '''
-        sub double(num a) {
-            return a * 2;
-        }
+        double(x <- 35);
         ''';
     SimpleStream<Token> ss = new SimpleStream<Token>(
         new List<Token>.from(tokenize(script)));
-    Node n = parse_submodule(ss);
+    Node n = parse_expression(ss);
     print(n);
-    print(n.childAt(0));
-    print(n.childAt(0).type);
 }

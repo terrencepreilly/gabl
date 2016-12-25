@@ -166,6 +166,10 @@ main() {
                 'combine(x, x2, 5*3);',
                 '((combine) call ((x)(x2) ((5) * (3))))',
                 );
+            fromStringExpect(
+                'double(x <- 35);',
+                '((double) call (((x) <- (35))))'
+                );
         });
     });
 
