@@ -168,7 +168,11 @@ main() {
                 );
             fromStringExpect(
                 'double(x <- 35);',
-                '((double) call (((x) <- (35))))'
+                '((double) call (((x) <- (35))))',
+                );
+            fromStringExpect(
+                '1 + double(x);',
+                '((1) + ((double) call ((x))))',
                 );
         });
     });
