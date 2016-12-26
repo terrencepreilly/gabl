@@ -56,7 +56,16 @@ class ParserError extends Error {
 
 
 Node parse(SimpleStream<Token> ss) {
-    return null;
+    Node n = new Node(type: 'nop', value: '');
+    while (ss.hasNext()) {
+        if (ss.peek().type == TokenType.control
+                && ss.peek().symbol == 'import') {
+            n.addChild(parse_import(ss));
+        } else if (ss.peek().type == TokenType.submodule) {
+            n.addChild(parse_submodule(ss));
+        }
+    }
+    return n;
 }
 
 
@@ -219,25 +228,46 @@ Node parse_parameters_definition(SimpleStream<Token> ss) {
     return params;
 }
 
+
 Node parse_parameters_call(SimpleStream<Token> ss) {
-    if (ss.peek().type != TokenType.openparen)
-        throw new ParserError('Expected "("');
-    ss.next();
+    SimpleStream<Token> inner =
+        get_nested_by(ss, TokenType.openparen, TokenType.closeparen);
     Node params = new Node(type: 'arguments', value: '');
-    while (ss.hasNext() && ss.peek().type != TokenType.closeparen) {
+    while (inner.hasNext()) {
         SimpleStream<Token> arg = new SimpleStream<Token>([]);
-        while (ss.hasNext()
-                && ss.peek().type != TokenType.comma
-                && ss.peek().type != TokenType.closeparen)
-            arg.push(ss.next());
-        if (ss.hasNext() && ss.peek().type == TokenType.comma)
-            ss.next();
+        while (inner.hasNext() && inner.peek().type != TokenType.comma)
+            arg.push(inner.next());
+        if (inner.hasNext() && inner.peek().type == TokenType.comma)
+            inner.next();
         params.addChild(parse_statement(arg));
     }
-    if (! ss.hasNext() || ss.peek().type != TokenType.closeparen)
-        throw new ParserError('Expected ")"');
-    ss.next();
     return params;
+}
+
+/// Get the inner portion of the stream [ss] nested between [open] and [close].
+SimpleStream<Token> get_nested_by(SimpleStream<Token> ss,
+                                  TokenType open, TokenType close) {
+    if (ss.peek().type != open)
+        throw new ParserError('Expected $open');
+    ss.next();
+    int count = 1;
+    SimpleStream<Token> ret = new SimpleStream<Token>([]);
+    while (ss.hasNext() && count > 0) {
+        if (ss.peek().type == open) {
+            count++;
+            ret.push(ss.next());
+        } else if (ss.peek().type == close) {
+            count--;
+            if (count > 0)
+                ret.push(ss.next());
+        } else {
+            ret.push(ss.next());
+        }
+    }
+    if (ss.peek().type != close)
+        throw new ParserError('Expected $close');
+    ss.next();
+    return ret;
 }
 
 
@@ -264,6 +294,8 @@ Node parse_statement(SimpleStream<Token> ss) {
                 ..addChild(parse_parameters_call(ss));
         }
         return n;
+    } else if (ss.peek().type == TokenType.type) {
+        return parse_definition(ss);
     } else if (ss.peek().type == TokenType.openparen) {
         Node n = parse_parenthetical(ss);
         if (ss.hasNext() && ss.peek().type == TokenType.operator)
@@ -415,7 +447,8 @@ Node parse_literal(SimpleStream<Token> ss) {
 Node parse_str(SimpleStream<Token> ss) {
     if (ss.peek().type != TokenType.str)
         throw new ParserError('Expected a str');
-    return new Node(type: 'str', value: ss.next().symbol);
+    Node n = new Node(type: 'str', value: ss.next().symbol);
+    return n;
 }
 
 
@@ -434,14 +467,27 @@ Node parse_bool(SimpleStream<Token> ss) {
 
 main() {
     String script = '''
-            sub fn() {
-                handle(onException) {
-                    Msg(x);
-                }
+        import http;
+
+        sub onHttpError() {
+            Msg("There was an error!");
+            return "";
+        }
+
+        sub retrievePage(str pagename) {
+            str value <- "";
+            handle(onHttpError) {
+                value <- get(pagename);
             }
+            return value;
+        }
+
+        sub main() {
+            Msg(retrievePage("google.com"));
+        }
         ''';
     SimpleStream<Token> ss = new SimpleStream<Token>(
         new List<Token>.from(tokenize(script)));
-    Node n = parse_submodule(ss);
+    Node n = parse(ss);
     print(n);
 }

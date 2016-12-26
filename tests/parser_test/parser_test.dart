@@ -157,24 +157,6 @@ main() {
                 '(return(0))',
                 );
         });
-        test('submodule calls', () {
-            fromStringExpect(
-                'double(x);',
-                '((double) call ((x)))',
-                );
-            fromStringExpect(
-                'combine(x, x2, 5*3);',
-                '((combine) call ((x)(x2) ((5) * (3))))',
-                );
-            fromStringExpect(
-                'double(x <- 35);',
-                '((double) call (((x) <- (35))))',
-                );
-            fromStringExpect(
-                '1 + double(x);',
-                '((1) + ((double) call ((x))))',
-                );
-        });
     });
 
     group('statement', () {
@@ -467,6 +449,7 @@ main() {
                 parse_import,
                 );
         });
+        // TODO import where expressions can be accepted
     });
 
     group('submodule', () {
@@ -491,6 +474,100 @@ main() {
                 '(((num(a))) double ((return((a) * (2)))))',
                 parse_submodule,
                 );
+        });
+        test('calls', () {
+            fromStringExpect(
+                'double(x);',
+                '((double) call ((x)))',
+                );
+            fromStringExpect(
+                'combine(x, x2, 5*3);',
+                '((combine) call ((x)(x2) ((5) * (3))))',
+                );
+            fromStringExpect(
+                'double(x <- 35);',
+                '((double) call (((x) <- (35))))',
+                );
+            fromStringExpect(
+                '1 + double(x);',
+                '((1) + ((double) call ((x))))',
+                );
+        });
+        test('nested calls', () {
+            fromStringExpect(
+                'double(double(2));',
+                '((double) call (((double) call ((2)))))',
+            );
+        });
+    });
+
+    group('script', () {
+        test('Simple script', () {
+            String script = '''
+                import http;
+
+                sub onHttpError() {
+                    Msg("There was an error!");
+                    return "";
+                }
+
+                sub retrievePage(str pagename) {
+                    str value <- "";
+                    handle(onHttpError) {
+                        value <- get(pagename);
+                    }
+                    return value;
+                }
+
+                sub main() {
+                    Msg(retrievePage("google.com"));
+                }
+                ''';
+            Node n = null;
+            try {
+            n = parse(streamify(script));
+            } catch(e) { expect(false, equals(true), reason: e.msg); }
+            expect(n, isNot(equals(null)));
+        });
+    });
+
+    group('get_nested_by', () {
+        test('parses simple parenthetical', () {
+            String script = '("hello")';
+            SimpleStream<Token> ss = streamify(script);
+            SimpleStream<Token> after =
+                get_nested_by(ss, TokenType.openparen, TokenType.closeparen);
+            expect(after.peek().type, equals(TokenType.str));
+            expect(after.peek().symbol, equals('"hello"'));
+        });
+        test('parses nested parethentical', () {
+            String script = '(("hello"), ("world"))';
+            SimpleStream<Token> ss = streamify(script);
+            SimpleStream<Token> after =
+                get_nested_by(ss, TokenType.openparen, TokenType.closeparen);
+            expect(after.peek().type, equals(TokenType.openparen));
+            after.next(); // (
+            expect(after.peek().type, equals(TokenType.str));
+            expect(after.peek().symbol, equals('"hello"'));
+            after.next(); // "hello"
+            after.next(); // )
+            after.next(); // ,
+            after.next(); // (
+            expect(after.peek().symbol, equals('"world"'));
+        });
+        test('parses nested three deep', () {
+            String script = '{{{a}}}';
+            SimpleStream<Token> ss = streamify(script);
+            SimpleStream<Token> first =
+                get_nested_by(ss, TokenType.openblock, TokenType.closeblock);
+            SimpleStream<Token> second =
+                get_nested_by(first, TokenType.openblock, TokenType.closeblock);
+            SimpleStream<Token> third =
+                get_nested_by(second, TokenType.openblock, TokenType.closeblock);
+            expect(third.peek().symbol, equals('a'));
+            expect(second.hasNext(), equals(false));
+            expect(first.hasNext(), equals(false));
+            expect(ss.hasNext(), equals(false));
         });
     });
 }
