@@ -60,6 +60,20 @@ Node parse(SimpleStream<Token> ss) {
 }
 
 
+Node parse_import(SimpleStream<Token> ss) {
+    if (! ss.hasNext()
+            || ss.peek().type != TokenType.control
+            || ss.peek().symbol != 'import')
+        throw new ParserError('Expected "import"');
+    ss.next();
+    Node n = new Node(type: 'import', value: 'import')
+        ..addChild(parse_name(ss));
+    if (! ss.hasNext() || ss.peek().type != TokenType.semicolon)
+        throw new ParserError('Expected ";"');
+    ss.next();
+    return n;
+}
+
 Node parse_handle(SimpleStream<Token> ss) {
     if (! ss.hasNext()
             || ss.peek().type != TokenType.control
@@ -354,7 +368,7 @@ Node parse_definition(SimpleStream<Token> ss) {
         ss.next();
         return type;
     } else if (ss.hasNext() && (ss.peek().type != TokenType.assign)) {
-        //throw new ParserError('Expected ";" or "<-"');
+        throw new ParserError('Expected ";" or "<-"');
     } else {
         Node eq = new Node(type: 'assign', value: ss.next().symbol);
         eq.addChild(type);

@@ -458,6 +458,17 @@ main() {
         });
     });
 
+    group('import', () {
+        test('by simple name', () {
+            String script = 'import http;';
+            fromStringExpect(
+                script,
+                '(import(http))',
+                parse_import,
+                );
+        });
+    });
+
     group('submodule', () {
         test('null', () {
             String script = '''
