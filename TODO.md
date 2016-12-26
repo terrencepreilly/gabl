@@ -18,5 +18,5 @@ _\( managed using [todo-md](https://github.com/Hypercubed/todo-md) \)_
   - [x] for loop
   - [x] handle/except
   - [x] import
-  - [ ] script
+  - [x] script
 - [ ] refactor

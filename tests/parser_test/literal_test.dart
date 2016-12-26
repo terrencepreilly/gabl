@@ -41,14 +41,14 @@ main() {
         test('can parse integer', () {
             String s = '234';
             SimpleStream<Token> ss = streamify(s);
-            Node n = parse_num(ss);
+            Node n = parse_literal(ss);
             expect(n.type, equals('num'));
             expect(n.value, equals(s));
         });
         test('can parse float', () {
             String s = '467.032';
             SimpleStream<Token> ss = streamify(s);
-            Node n = parse_num(ss);
+            Node n = parse_literal(ss);
             expect(n.type, equals('num'));
             expect(n.value, equals(s));
         });
@@ -56,13 +56,13 @@ main() {
     group('bool', () {
         test('can parse true', () {
             SimpleStream<Token> ss = streamify('true');
-            Node n = parse_bool(ss);
+            Node n = parse_literal(ss);
             expect(n.type, equals('bool'));
             expect(n.value, equals('true'));
         });
         test('can parse false', () {
             SimpleStream<Token> ss = streamify('false');
-            Node n = parse_bool(ss);
+            Node n = parse_literal(ss);
             expect(n.type, equals('bool'));
             expect(n.value, equals('false'));
         });
@@ -70,7 +70,7 @@ main() {
     group('string', () {
         test('can parse single string', () {
             SimpleStream<Token> ss = streamify('"hello"');
-            Node n = parse_str(ss);
+            Node n = parse_literal(ss);
             expect(n.type, equals('str'));
             expect(n.value, equals('"hello"'));
         });

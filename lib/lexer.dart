@@ -33,6 +33,15 @@ enum TokenType {
     comma,
 }
 
+const List<TokenType> LITERAL = const [
+    TokenType.num,
+    TokenType.str,
+    TokenType.bool,
+    TokenType.date,
+    ];
+
+
+
 
 class Token {
     String symbol;

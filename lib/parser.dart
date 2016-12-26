@@ -1,14 +1,6 @@
 import 'lexer.dart';
 import 'utils.dart';
 
-const List<TokenType> LITERAL = const [
-    TokenType.num,
-    TokenType.str,
-    TokenType.bool,
-    TokenType.date,
-    ];
-
-
 /// An AST Node.
 class Node {
     String type;
@@ -135,10 +127,10 @@ Node parse_for_condition(SimpleStream<Token> ss) {
     if (! ss.hasNext() || ss.peek().type != TokenType.openparen)
         throw new ParserError('Expected "("');
     ss.next();
-    Node n = new Node(type: 'condition', value: '');
-    n.addChild(parse_expression(ss));
-    n.addChild(parse_expression(ss));
-    n.addChild(parse_statement(ss));
+    Node n = new Node(type: 'condition', value: '')
+        ..addChild(parse_expression(ss))
+        ..addChild(parse_expression(ss))
+        ..addChild(parse_statement(ss));
     if (! ss.hasNext() || ss.peek().type != TokenType.closeparen)
         throw new ParserError('Expected ")"');
     ss.next();
@@ -159,53 +151,22 @@ Node parse_expression(SimpleStream<Token> ss) {
 }
 
 
-Node parse_if_statement(SimpleStream<Token> ss) {
+Node parse_if_statement(SimpleStream<Token> ss, [String symbol='if']) {
     if (ss.peek().type != TokenType.control
-            || ss.peek().symbol != 'if')
-        throw new ParserError('Expected "if"');
+            || ss.peek().symbol != symbol)
+        throw new ParserError('Expected $symbol');
 
-    Node n = new Node(type: 'control', value: 'if');
-    ss.next();
-    n.addChild(parse_parenthetical(ss));
-    n.addChild(parse_block(ss));
-    if (ss.hasNext() && ss.peek().type == TokenType.control) {
-        if (ss.peek().symbol == 'elif')
-            n.addChild(parse_elif_statement(ss));
-        else if (ss.peek().symbol == 'else')
-            n.addChild(parse_else_statement(ss));
-    }
-    return n;
-}
+    if (symbol == 'else')
+        return new Node(type: 'control', value: ss.next().symbol)
+            ..addChild(parse_block(ss));
 
-
-Node parse_elif_statement(SimpleStream<Token> ss) {
-    // TODO Combine these three if-controls somehow.
-    if (ss.peek().type != TokenType.control
-            || ss.peek().symbol != 'elif')
-        throw new ParserError('Expected "elif"');
-
-    Node n = new Node(type: 'control', value: 'elif');
-    ss.next();
-    n.addChild(parse_parenthetical(ss));
-    n.addChild(parse_block(ss));
-    if (ss.hasNext() && ss.peek().type == TokenType.control) {
-        if (ss.peek().symbol == 'elif')
-            n.addChild(parse_elif_statement(ss));
-        else if (ss.peek().symbol == 'else')
-            n.addChild(parse_else_statement(ss));
-    }
-    return n;
-}
-
-
-Node parse_else_statement(SimpleStream<Token> ss) {
-    if (ss.peek().type != TokenType.control
-            || ss.peek().symbol != 'else')
-        throw new ParserError('Expected "else"');
-
-    Node n = new Node(type: 'control', value: 'else');
-    ss.next();
-    n.addChild(parse_block(ss));
+    Node n = new Node(type: 'control', value: ss.next().symbol)
+        ..addChild(parse_parenthetical(ss))
+        ..addChild(parse_block(ss));
+    if (ss.hasNext()
+            && ss.peek().type == TokenType.control
+            && ['elif', 'else'].contains(ss.peek().symbol))
+        n.addChild(parse_if_statement(ss, ss.peek().symbol));
     return n;
 }
 
@@ -344,19 +305,11 @@ Node parse_expression_operator(SimpleStream<Token> ss, Node n) {
 }
 
 
+/// Parse a statement enclosed in `()`.
 Node parse_parenthetical(SimpleStream<Token> ss) {
-    SimpleStream<Token> inner = new SimpleStream<Token>(new List<Token>());
-    int counter = 1;
-    ss.next();
-    while (counter > 0 && ss.hasNext()) {
-        if (ss.peek().type == TokenType.closeparen)
-            counter--;
-        else if (ss.peek().type == TokenType.openparen)
-            counter++;
-        inner.push(ss.next());
-    }
-    inner.pop();
-    return parse_statement(inner);
+    return parse_statement(
+        get_nested_by(ss, TokenType.openparen, TokenType.closeparen)
+        );
 }
 
 
@@ -404,7 +357,7 @@ Node parse_definition(SimpleStream<Token> ss) {
     } else {
         Node eq = new Node(type: 'assign', value: ss.next().symbol);
         eq.addChild(type);
-        eq.addChild(parse_str(ss)); // TODO change to expression
+        eq.addChild(parse_literal(ss)); // TODO change to expression
         return eq;
     }
 }
@@ -428,13 +381,13 @@ Node parse_literal(SimpleStream<Token> ss) {
         throw new ParserError('Expected a literal type');
     switch (ss.peek().type) {
         case TokenType.bool:
-            return parse_bool(ss);
+            return parse_literal_terminal(ss, TokenType.bool, 'bool');
             break;
         case TokenType.num:
-            return parse_num(ss);
+            return parse_literal_terminal(ss, TokenType.num, 'num');
             break;
         case TokenType.str:
-            return parse_str(ss);
+            return parse_literal_terminal(ss, TokenType.str, 'str');
             break;
         case TokenType.date:
             break;
@@ -443,51 +396,13 @@ Node parse_literal(SimpleStream<Token> ss) {
     }
 }
 
-
-Node parse_str(SimpleStream<Token> ss) {
-    if (ss.peek().type != TokenType.str)
-        throw new ParserError('Expected a str');
-    Node n = new Node(type: 'str', value: ss.next().symbol);
-    return n;
-}
-
-
-Node parse_num(SimpleStream<Token> ss) {
-    if (ss.peek().type != TokenType.num)
-        throw new ParserError('Expected a num');
-    return new Node(type: 'num', value: ss.next().symbol);
-}
-
-Node parse_bool(SimpleStream<Token> ss) {
-    if (ss.peek().type != TokenType.bool)
-        throw new ParserError('Expected a bool');
-    return new Node(type: 'bool', value: ss.next().symbol);
+Node parse_literal_terminal(SimpleStream<Token> ss, TokenType type, String type_repr) {
+    if (ss.peek().type != type)
+        throw new ParserError('Expected a $type_repr');
+    return new Node(type: type_repr, value: ss.next().symbol);
 }
 
 
 main() {
-    String script = '''
-        import http;
-
-        sub onHttpError() {
-            Msg("There was an error!");
-            return "";
-        }
-
-        sub retrievePage(str pagename) {
-            str value <- "";
-            handle(onHttpError) {
-                value <- get(pagename);
-            }
-            return value;
-        }
-
-        sub main() {
-            Msg(retrievePage("google.com"));
-        }
-        ''';
-    SimpleStream<Token> ss = new SimpleStream<Token>(
-        new List<Token>.from(tokenize(script)));
-    Node n = parse(ss);
-    print(n);
+    print(TokenType.bool.toString());
 }
