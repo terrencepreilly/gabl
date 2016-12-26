@@ -348,6 +348,45 @@ main() {
         });
     });
 
+    group('handle statement', () {
+        test('simple', () {
+            String script = '''
+                handle (handleException) { }
+                ''';
+            fromStringExpect(
+                script,
+                '((handleException) handle ())',
+                parse_handle,
+                );
+        });
+        test('complex', () {
+            String script = '''
+                handle (onException) {
+                    x <- x + 1;
+                }
+                ''';
+            fromStringExpect(
+                script,
+                '((onException) handle (((x) <- ((x) + (1)))))',
+                parse_handle,
+                );
+        });
+        test('nested in block', () {
+            String script = '''
+                sub fn() {
+                    handle(onException) {
+                        Msg(x);
+                    }
+                }
+                ''';
+            fromStringExpect(
+                script,
+                '(() fn (((onException) handle (((Msg) call ((x)))))))',
+                parse_submodule,
+                );
+        });
+    });
+
     group('if statement', () {
         test('null', () {
             fromStringExpect(

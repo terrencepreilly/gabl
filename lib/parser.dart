@@ -60,6 +60,18 @@ Node parse(SimpleStream<Token> ss) {
 }
 
 
+Node parse_handle(SimpleStream<Token> ss) {
+    if (! ss.hasNext()
+            || ss.peek().type != TokenType.control
+            || ss.peek().symbol != 'handle')
+        throw new ParserError('Expected "handle"');
+    ss.next();
+    return new Node(type: 'handle', value: 'handle')
+        ..addChild(parse_parenthetical(ss))
+        ..addChild(parse_block(ss));
+}
+
+
 Node parse_submodule(SimpleStream<Token> ss) {
     if (! ss.hasNext()
             || (ss.peek().type != TokenType.submodule
@@ -311,6 +323,9 @@ Node parse_block(SimpleStream<Token> ss) {
     while (ss.hasNext() && ss.peek().type != TokenType.closeblock) {
         if (ss.peek().type == TokenType.openblock) {
             n.addChild(parse_block(ss));
+        } else if (ss.peek().type == TokenType.control
+                   && ss.peek().symbol == 'handle') {
+            n.addChild(parse_handle(ss));
         } else {
             n.addChild(parse_expression(ss));
         }
@@ -405,10 +420,14 @@ Node parse_bool(SimpleStream<Token> ss) {
 
 main() {
     String script = '''
-        double(x <- 35);
+            sub fn() {
+                handle(onException) {
+                    Msg(x);
+                }
+            }
         ''';
     SimpleStream<Token> ss = new SimpleStream<Token>(
         new List<Token>.from(tokenize(script)));
-    Node n = parse_expression(ss);
+    Node n = parse_submodule(ss);
     print(n);
 }
