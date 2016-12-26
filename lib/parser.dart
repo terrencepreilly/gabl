@@ -376,33 +376,15 @@ Node parse_type(SimpleStream<Token> ss) {
     return new Node(type: 'type', value: ss.next().symbol);
 }
 
+
 Node parse_literal(SimpleStream<Token> ss) {
     if (! LITERAL.contains(ss.peek().type))
         throw new ParserError('Expected a literal type');
-    switch (ss.peek().type) {
-        case TokenType.bool:
-            return parse_literal_terminal(ss, TokenType.bool, 'bool');
-            break;
-        case TokenType.num:
-            return parse_literal_terminal(ss, TokenType.num, 'num');
-            break;
-        case TokenType.str:
-            return parse_literal_terminal(ss, TokenType.str, 'str');
-            break;
-        case TokenType.date:
-            break;
-        default:
-            throw new ParserError('unrecognized literal type');
-    }
-}
-
-Node parse_literal_terminal(SimpleStream<Token> ss, TokenType type, String type_repr) {
-    if (ss.peek().type != type)
-        throw new ParserError('Expected a $type_repr');
+    String type_repr = ss.peek().type.toString().split('.').last;
     return new Node(type: type_repr, value: ss.next().symbol);
 }
 
 
 main() {
-    print(TokenType.bool.toString());
+    print(TokenType.bool.toString().split('.').last);
 }

@@ -140,3 +140,7 @@ Iterable tokenize(String script) sync* {
         }
     }
 }
+
+SimpleStream<Token> streamify(String s) {
+    return new SimpleStream<Token>.from(tokenize(s));
+}

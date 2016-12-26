@@ -3,9 +3,6 @@ import '../../lib/parser.dart';
 import '../../lib/lexer.dart';
 import '../../lib/utils.dart';
 
-SimpleStream<Token> streamify(String s) {
-    return new SimpleStream<Token>.from(tokenize(s));
-}
 
 main() {
     group('literal as', () {
