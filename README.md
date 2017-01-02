@@ -14,6 +14,10 @@ A BNF description of **Gabl** can be found in `docs/bnf.md`.
 **Gabl** will support higher-order functions, and some basic
 error handling.
 
+Adding modules from GAB, once the main control structures
+and such have been determined, should be easy.  They will
+be described in a translation file, using YAML (see
+`docs/translation_files.md`.)
 
 ## Example
 

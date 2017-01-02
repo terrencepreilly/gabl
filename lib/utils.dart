@@ -1,3 +1,5 @@
+
+/// A stream object which allows forward peeking by one.
 class SimpleStream<T> {
     int curr;
     List<T> contents;
@@ -33,5 +35,41 @@ class SimpleStream<T> {
 
     T pop() {
         this.contents.removeLast();
+    }
+}
+
+/// An AST Node.
+class Node {
+    String type;
+    String value;
+    List<Node> children;
+
+    Node({this.type, this.value})
+        : children = new List<Node>();
+
+    addChild(Node n) {
+        children.add(n);
+    }
+
+    childAt(int i) {
+        return children[i];
+    }
+
+    String toString() {
+        int half = children.length ~/ 2;
+        String ret = '(';
+        ret += children.getRange(0, half).join(' ');
+        if (half > 0) {
+            if (value != '')
+                ret += ' ' + value + ' ';
+            else if (type == 'block'
+                    || type == 'parameters')
+                ret += ' ';
+        } else {
+            ret += value;
+        }
+        ret += children.getRange(half, children.length).join(' ');
+        ret += ')';
+        return ret;
     }
 }

@@ -1,42 +1,6 @@
 import 'lexer.dart';
 import 'utils.dart';
 
-/// An AST Node.
-class Node {
-    String type;
-    String value;
-    List<Node> children;
-
-    Node({this.type, this.value})
-        : children = new List<Node>();
-
-    addChild(Node n) {
-        children.add(n);
-    }
-
-    childAt(int i) {
-        return children[i];
-    }
-
-    String toString() {
-        int half = children.length ~/ 2;
-        String ret = '(';
-        ret += children.getRange(0, half).join(' ');
-        if (half > 0) {
-            if (value != '')
-                ret += ' ' + value + ' ';
-            else if (type == 'block'
-                    || type == 'parameters')
-                ret += ' ';
-        } else {
-            ret += value;
-        }
-        ret += children.getRange(half, children.length).join(' ');
-        ret += ')';
-        return ret;
-    }
-}
-
 
 class ParserError extends Error {
     String msg;
@@ -74,6 +38,7 @@ Node parse_import(SimpleStream<Token> ss) {
     ss.next();
     return n;
 }
+
 
 Node parse_handle(SimpleStream<Token> ss) {
     if (! ss.hasNext()
@@ -177,8 +142,8 @@ Node parse_parameters_definition(SimpleStream<Token> ss) {
     ss.next();
     Node params = new Node(type: 'parameters', value: '');
     while (ss.hasNext() && ss.peek().type == TokenType.type) {
-        Node param = parse_type(ss);
-        param.addChild(parse_name(ss));
+        Node param = parse_type(ss)
+            ..addChild(parse_name(ss));
         params.addChild(param);
         if (ss.peek().type == TokenType.comma)
             ss.next();
@@ -232,6 +197,7 @@ SimpleStream<Token> get_nested_by(SimpleStream<Token> ss,
 }
 
 
+/// Parse a group of literals/names/etc. separated by functions/operators.
 Node parse_statement(SimpleStream<Token> ss) {
     if (! ss.hasNext()) {
         return new Node(type: 'nop', value: '');
@@ -350,15 +316,13 @@ Node parse_definition(SimpleStream<Token> ss) {
     Node type = parse_type(ss);
     type.addChild(parse_name(ss));
     if (ss.peek().type == TokenType.semicolon) {
-        ss.next();
         return type;
     } else if (ss.hasNext() && (ss.peek().type != TokenType.assign)) {
         throw new ParserError('Expected ";" or "<-"');
     } else {
-        Node eq = new Node(type: 'assign', value: ss.next().symbol);
-        eq.addChild(type);
-        eq.addChild(parse_literal(ss)); // TODO change to expression
-        return eq;
+        return new Node(type: 'assign', value: ss.next().symbol)
+            ..addChild(type)
+            ..addChild(parse_literal(ss)); // TODO change to expression
     }
 }
 
