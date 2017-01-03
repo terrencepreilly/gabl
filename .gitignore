@@ -35,3 +35,6 @@ pubspec.lock
 # Things which might be proprietary to GAB
 *.gab
 translation/*.yaml
+
+# Testing definitions and such
+.source

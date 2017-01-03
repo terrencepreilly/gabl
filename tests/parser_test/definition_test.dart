@@ -2,6 +2,7 @@ import 'package:test/test.dart';
 import '../../lib/lexer.dart';
 import '../../lib/parser.dart';
 import '../../lib/utils.dart';
+import '../utils.dart';
 
 main() {
     group('definition', () {
