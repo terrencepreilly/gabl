@@ -105,6 +105,39 @@ String translate_expression(Node expr, Map definitions) {
 
 }
 
+String translate_assignment(Node ass, Map definitions) {
+    if (ass.type != 'assign')
+        throw new TranslationError('Expected an assignment');
+    String target = translate_name(ass.childAt(0));
+    // Handle normal assignment.
+    // Handle expression assignment.
+    // Handle function assignment.
+    String sub = translate_sub_call(ass.childAt(1), definitions);
+    return sub.substring(0, sub.length-1) + ',' + target + ')';
+}
+
+String translate_sub_call(Node sub, Map definitions) {
+    if (sub.type != 'sub-call')
+        throw new TranslationError('Expected a submodule call');
+    String gabl_name = sub.childAt(0)?.value;
+    if (! definitions['functions'].containsKey(gabl_name))
+        throw new TranslationError('Undefined submodule $gabl_name');
+    Map definition = definitions['functions'][gabl_name];
+    String ret = definition['name'] + '(';
+    ret += sub.childAt(1).childrenAfter(0).map(
+        (x) => translate_literal(x)).join(',');
+    ret += ')';
+    return ret;
+}
+
+String translate_literal(Node literal) {
+    if (! ['num', 'bool', 'str', 'date'].contains(literal.type))
+        throw new TranslationError('Expected a literal node');
+    if (literal.type == 'bool')
+        return properCase(literal.value);
+    return literal.value;
+}
+
 
 Map update(Map orig, Map next) {
     for (var key in orig.keys) {

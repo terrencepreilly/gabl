@@ -30,23 +30,35 @@ main() {
         test('null', () { fromStringExpect('', '()', parse_statement); });
         test('num', () { fromStringExpect('3', '(3)', parse_statement); });
         test('nums', () {
-            fromStringExpect('3 + 4', '((3) + (4))', parse_statement);
+            fromStringExpect('3 + 4', '((+) call ((3)(4)))', parse_statement);
         });
         test('three numbers', () {
-            fromStringExpect('3 + 4 + 5', '((3) + ((4) + (5)))', parse_statement);
+            fromStringExpect(
+                '3 + 4 + 5',
+                '((+) call ((3)((+) call ((4)(5)))))',
+                parse_statement
+                );
         });
 
         test('strings', () {
-            fromStringExpect('"a" + "b"', '(("a") + ("b"))', parse_statement);
+            fromStringExpect('"a" + "b"', '((+) call (("a")("b")))', parse_statement);
         });
         test('bool', () {
-            fromStringExpect('true * false', '((true) * (false))', parse_statement);
+            fromStringExpect(
+                'true * false',
+                '((*) call ((true)(false)))',
+                parse_statement
+                );
         });
         test('name', () {
-            fromStringExpect('name1 + name2', '((name1) + (name2))', parse_statement);
+            fromStringExpect(
+                'name1 + name2',
+                '((+) call ((name1)(name2)))',
+                parse_statement
+                );
         });
         test('comparison', () {
-            fromStringExpect('a > 0', '((a) > (0))', parse_statement);
+            fromStringExpect('a > 0', '((>) call ((a)(0)))', parse_statement);
         });
     });
 
@@ -61,7 +73,7 @@ main() {
         test('nums', () {
             fromStringExpect(
                 '(3 + 4 + 5)',
-                '((3) + ((4) + (5)))',
+                '((+) call ((3)((+) call ((4)(5)))))',
                 parse_parenthetical
                 );
         });
@@ -83,9 +95,16 @@ main() {
             fromStringExpect('{}', '()', parse_block);
         });
         test('simple', () {
-            // TODO Normalize the string output of nodes so it makes sense.
-            fromStringExpect('{ 3; 3 + 5; }', '((3) ((3) + (5)))', parse_block);
-            fromStringExpect('{ 3 + (5 * 2); }', '(((3) + ((5) * (2))))', parse_block);
+            fromStringExpect(
+                '{ 3; 3 + 5; }',
+                '((3) ((+) call ((3)(5))))',
+                parse_block,
+                );
+            fromStringExpect(
+                '{ 3 + (5 * 2); }',
+                '(((+) call ((3)((*) call ((5)(2))))))',
+                parse_block,
+                );
         });
         test('nested', () {
             fromStringExpect('{{}}', '(())', parse_block);
@@ -133,7 +152,11 @@ main() {
         test('simple', () {
             fromStringExpect(
                 'while (a < 0) { a <- a + 1; }',
-                '(((a) < (0)) while (((a) <- ((a) + (1)))))',
+                '('
+                    + '((<) call ((a)(0))) '
+                    + 'while '
+                    + '(((<-) call ((a)((+) call ((a)(1))))))'
+                + ')',
                 parse_while,
                 );
         });
@@ -155,8 +178,15 @@ main() {
             ''';
             fromStringExpect(
                 script,
-                '((((a) <- (0))((a) > (0)) ((a) <- ((a) + (1)))) ' +
-                    'for (((b) <- ((b) + (a)))))',
+                '('
+                    + '('
+                        + '((<-) call ((a)(0)))'
+                        + '((>) call ((a)(0))) '
+                        + '((<-) call ((a)((+) call ((a)(1)))))'
+                    + ') '
+                    + 'for '
+                    + '(((<-) call ((b)((+) call ((b)(a))))))'
+                + ')',
                 parse_for,
                 );
         });
@@ -181,7 +211,7 @@ main() {
                 ''';
             fromStringExpect(
                 script,
-                '((onException) handle (((x) <- ((x) + (1)))))',
+                '((onException) handle (((<-) call ((x)((+) call ((x)(1)))))))',
                 parse_handle,
                 );
         });
@@ -217,7 +247,7 @@ main() {
                 ''';
             fromStringExpect(
                 script,
-                '(((a) > (0)) if (((a) <- ((a) + (1)))))',
+                '(((>) call ((a)(0))) if (((<-) call ((a)((+) call ((a)(1)))))))',
                 parse_if_statement,
                 );
         });
@@ -230,8 +260,10 @@ main() {
                 ''';
             fromStringExpect(
                 script,
-                '((((a) + (1)) > (0)) if ' +
-                    '(((a) <- ((a) + (1))) ((a) <- ((a) / (2)))))',
+                '(((>) call (((+) call ((a)(1)))(0))) if ('
+                        + '((<-) call ((a)((+) call ((a)(1))))) '
+                        + '((<-) call ((a)((/) call ((a)(2)))))'
+                        + '))',
                 parse_if_statement,
                 );
         });
@@ -242,7 +274,7 @@ main() {
                 ''';
             fromStringExpect(
                 script,
-                '(((a) > (0)) if () (((a) < (0)) elif ()))',
+                '(((>) call ((a)(0))) if () (((<) call ((a)(0))) elif ()))',
                 parse_if_statement,
                 );
         });
@@ -303,7 +335,7 @@ main() {
                 ''';
             fromStringExpect(
                 script,
-                '(((num(a))) double ((return((a) * (2)))))',
+                '(((num(a))) double ((return((*) call ((a)(2))))))',
                 parse_submodule,
                 );
         });
@@ -314,15 +346,15 @@ main() {
                 );
             fromStringExpect(
                 'combine(x, x2, 5*3);',
-                '((combine) call ((x)(x2) ((5) * (3))))',
+                '((combine) call ((x)(x2) ((*) call ((5)(3)))))',
                 );
             fromStringExpect(
                 'double(x <- 35);',
-                '((double) call (((x) <- (35))))',
+                '((double) call (((<-) call ((x)(35)))))',
                 );
             fromStringExpect(
                 '1 + double(x);',
-                '((1) + ((double) call ((x))))',
+                '((+) call ((1)((double) call ((x)))))',
                 );
         });
         test('nested calls', () {

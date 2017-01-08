@@ -20,11 +20,11 @@ main() {
         });
 
         test('can parse single operator with two values', () {
-            fromStringExpect('5 + 2;', '((5) + (2))');
+            fromStringExpect('5 + 2;', '((+) call ((5)(2)))');
         });
 
         test('can parse multiple operators with values', () {
-            fromStringExpect('1 + 2 + 3;', '((1) + ((2) + (3)))');
+            fromStringExpect('1 + 2 + 3;', '((+) call ((1)((+) call ((2)(3)))))');
         });
 
         test('can parse empty parentheses', () {
@@ -40,11 +40,11 @@ main() {
         });
 
         test('can parse parentheses with multiple numbers', () {
-            fromStringExpect('(3 + 5);', '((3) + (5))');
+            fromStringExpect('(3 + 5);', '((+) call ((3)(5)))');
         });
 
         test('can parse numbers in and out of parentheses', () {
-            fromStringExpect('(3 + 2) + 1;', '(((3) + (2)) + (1))');
+            fromStringExpect('(3 + 2) + 1;', '((+) call (((+) call ((3)(2)))(1)))');
         });
 
         test('parentheses can change order', () {
@@ -65,21 +65,21 @@ main() {
         test('complicated parenthetical', () {
             fromStringExpect(
                 '((3) / (4 + 3)) * 5;',
-                '(((3) / ((4) + (3))) * (5))'
+                '((*) call (((/) call ((3)((+) call ((4)(3)))))(5)))',
                 );
         });
 
         test('other types', () {
             fromStringExpect(
                 '(true + "a") - (5 * name1);',
-                '(((true) + ("a")) - ((5) * (name1)))',
+                '((-) call (((+) call ((true)("a")))((*) call ((5)(name1)))))',
                 );
         });
 
         test('assignment expression', () {
             fromStringExpect(
                 'a <- a + 1;',
-                '((a) <- ((a) + (1)))',
+                '((<-) call ((a)((+) call ((a)(1)))))',
                 );
         });
         test('return', () {

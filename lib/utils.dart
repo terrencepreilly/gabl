@@ -47,12 +47,19 @@ class Node {
     Node({this.type, this.value})
         : children = new List<Node>();
 
-    addChild(Node n) {
+    void addChild(Node n) {
         children.add(n);
     }
 
-    childAt(int i) {
+    Node childAt(int i) {
         return children[i];
+    }
+
+    /// Return the [i]th child, and all after.
+    List<Node> childrenAfter(int i) {
+        if (i >= children.length)
+            return new List<Node>();
+        return children.sublist(i);
     }
 
     String toString() {

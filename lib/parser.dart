@@ -257,17 +257,31 @@ Node parse_expression_return(SimpleStream<Token> ss) {
 
 
 Node parse_expression_operator(SimpleStream<Token> ss, Node n) {
+//    List<TokenType> acceptable_types = [TokenType.num, TokenType.openparen];
+//    Node oper = parse_operator(ss)
+//        ..addChild(n);
+//    if (! ss.hasNext() || (! LITERAL.contains(ss.peek().type)
+//                           && ss.peek().type != TokenType.name
+//                           && (ss.peek().type != TokenType.openparen
+//                               && ss.peek().type != TokenType.assign))) {
+//        throw new ParserError('Expected a literal, name, function, or parenthetical');
+//    }
+//    oper.addChild(parse_statement(ss));
+//    return oper;
     List<TokenType> acceptable_types = [TokenType.num, TokenType.openparen];
-    Node oper = parse_operator(ss)
-        ..addChild(n);
+    Node args = new Node(type: 'arguments', value: '');
+    args.addChild(n);
+    Node oper = parse_operator(ss);
     if (! ss.hasNext() || (! LITERAL.contains(ss.peek().type)
                            && ss.peek().type != TokenType.name
                            && (ss.peek().type != TokenType.openparen
                                && ss.peek().type != TokenType.assign))) {
         throw new ParserError('Expected a literal, name, function, or parenthetical');
     }
-    oper.addChild(parse_statement(ss));
-    return oper;
+    args.addChild(parse_statement(ss));
+    return new Node(type: 'sub-call', value: 'call')
+        ..addChild(oper)
+        ..addChild(args);
 }
 
 
