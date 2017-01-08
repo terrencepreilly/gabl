@@ -27,11 +27,11 @@ void scriptYields(String script, String expected) {
 
 Map MULT = {
     'functions': {
-        '*': {
+        '*': [{
             'name': 'F.Intrinsic.Math.Mult',
-            'params': ['num', 'num'],
-            'return': 'num',
-        },
+            'params': ['int', 'int'],
+            'return': 'int',
+        }],
     },
     'variables': {
         'a': {
@@ -75,7 +75,7 @@ main() {
 
     group('translate definition', () {
         test('without initialization', () {
-            Node n = parse_definition(streamify('num a;'));
+            Node n = parse_definition(streamify('int a;'));
             nodeYields(n, 'V.Local.A.Declare(Long)');
         });
     });
@@ -112,11 +112,11 @@ main() {
         test('fruitless', () {
             Map defs = {
                 'functions': {
-                    'Msg': {
+                    'Msg': [{
                         'name': 'F.Intrinsic.UI.MsgBox',
-                        'params': 'str',
+                        'params': ['str'],
                         'return': null,
-                        }
+                        }]
                     },
                 'variables': {}
                 };
@@ -129,11 +129,11 @@ main() {
         test('fruitfull', () {
             Map defs = {
                 'functions': {
-                    'mult': {
+                    'mult': [{
                         'name': 'F.Intrinsic.Math.Mult',
-                        'params': ['num', 'num'],
-                        'return': 'num',
-                        }
+                        'params': ['int', 'int'],
+                        'return': 'int',
+                        }]
                 },
                 'variables': {
                     'a': {
@@ -180,6 +180,34 @@ main() {
             Node n = parse_statement(streamify(s));
             String expected = 'V.Local.A.Set(B)';
             expect(translate_assignment(n, defs), equals(expected));
+        });
+    });
+
+    group('find definition', () {
+        test('can infer over types', () {
+            Map defs = {
+                'functions': {
+                    '*': [
+                        {
+                            'name': 'F.Intrinsic.Math.Mult',
+                            'params': ['int', 'int'],
+                            'return': 'int',
+                        },
+                        {
+                            'name': 'F.Intrinsic.Math.Mult',
+                            'params': ['float', 'float'],
+                            'return': 'float',
+                        },
+                    ]
+                },
+                'variables': {},
+            };
+            Node n_int =  parse_statement(streamify('3 * 4'));
+            Node n_float = parse_statement(streamify('3.0 * 4.0'));
+            Map def_int = select_submodule_definition(defs, n_int);
+            Map def_float = select_submodule_definition(defs, n_float);
+            expect(def_int['return'], equals('int'));
+            expect(def_float['return'], equals('float'));
         });
     });
 }

@@ -10,7 +10,7 @@
 
 <if-stmt> -> if ( <stmt> ) <block>
 
-<submodule> -> sub <name> <param> <sub-block>
+<submodule> -> <type> sub <name> <param> <sub-block>
 
 <sub-block> -> { <sequence> [return <expr>] }
 

@@ -6,7 +6,8 @@ import 'utils.dart';
 
 
 Map<String, String> typeMap = {
-    'num': 'Long',
+    'int': 'Long',
+    'float': 'Float',
     'str': 'String',
     'bool': 'Boolean',
     'date': 'Date',
@@ -45,6 +46,41 @@ String translate(Node ast) {
     return ret;
 }
 
+bool list_equality<T>(List<T> l1, List<T> l2) {
+    if (l1.length != l2.length)
+        return false;
+    return new List<bool>
+        .generate(l1.length, (i) => l1[i] == l2[i], growable: false)
+        .every((x) => x);
+}
+
+
+// TODO Refactor! This is gross!
+Map select_submodule_definition(Map definitions, Node n) {
+    if (n.type != 'sub-call')
+        throw new TranslationError('Expected a submodule');
+
+    if (! ['name', 'operator'].contains(n.childAt(0).type))
+        throw new TranslationError('Expected name');
+    String gabl_name = n.childAt(0).value;
+    if (! definitions['functions'].containsKey(gabl_name))
+        throw new TranslationError('Submodule $gabl_name undefined');
+    if (n.childAt(1)?.type != 'arguments')
+        throw new TranslationError('Expected arguments to submodule');
+
+    List<Map> defs = definitions['functions'][gabl_name];
+    List<Node> args = n.childAt(1).childrenAfter(0);
+    List<String> arg_types = new List<String>.from(args.map((x) => x.type));
+    List<List<String>> param_types = new List<List<String>>
+        .generate(defs.length, (i) => defs[i]['params']);
+    for (int i = 0; i < param_types.length; i++) {
+        if (list_equality(param_types[i], arg_types))
+            return defs[i];
+    } // No definition with the given parameters exists.
+    throw new TranslationError(
+        'Submodule $gabl_name with parameters $arg_types not found'
+        );
+}
 
 String translate_submodule(Node sub) {
     if (sub.type != 'submodule')
@@ -135,10 +171,7 @@ String translate_assignment(Node ass, Map definitions) {
 String translate_sub_call(Node sub, Map definitions) {
     if (sub.type != 'sub-call')
         throw new TranslationError('Expected a submodule call');
-    String gabl_name = sub.childAt(0)?.value;
-    if (! definitions['functions'].containsKey(gabl_name))
-        throw new TranslationError('Undefined submodule $gabl_name');
-    Map definition = definitions['functions'][gabl_name];
+    Map definition = select_submodule_definition(definitions, sub);
     String ret = definition['name'] + '(';
     ret += sub.childAt(1).childrenAfter(0).map(
         (x) => translate_literal(x)).join(',');

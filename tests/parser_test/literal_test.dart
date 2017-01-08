@@ -6,12 +6,19 @@ import '../../lib/utils.dart';
 
 main() {
     group('literal as', () {
-        test('num', () {
+        test('int', () {
             String s = '123';
             SimpleStream<Token> ss = streamify(s);
             Node n = parse_literal(ss);
-            expect(n.type, equals('num'));
+            expect(n.type, equals('int'));
             expect(n.value, equals('123'));
+        });
+        test('float', () {
+            String s = '123.0';
+            SimpleStream<Token> ss = streamify(s);
+            Node n = parse_literal(ss);
+            expect(n.type, equals('float'));
+            expect(n.value, equals('123.0'));
         });
         test('str', () {
             String s = '"ZZZ"';
@@ -39,14 +46,14 @@ main() {
             String s = '234';
             SimpleStream<Token> ss = streamify(s);
             Node n = parse_literal(ss);
-            expect(n.type, equals('num'));
+            expect(n.type, equals('int'));
             expect(n.value, equals(s));
         });
         test('can parse float', () {
             String s = '467.032';
             SimpleStream<Token> ss = streamify(s);
             Node n = parse_literal(ss);
-            expect(n.type, equals('num'));
+            expect(n.type, equals('float'));
             expect(n.value, equals(s));
         });
     });

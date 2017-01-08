@@ -17,7 +17,8 @@ void main() {
         });
 
         test('type (int, string, etc.) can be detected', () {
-            expect(new Token('num').type, equals(TokenType.type));
+            expect(new Token('int').type, equals(TokenType.type));
+            expect(new Token('float').type, equals(TokenType.type));
             expect(new Token('str').type, equals(TokenType.type));
             expect(new Token('bool').type, equals(TokenType.type));
             expect(new Token('date').type, equals(TokenType.type));
@@ -30,7 +31,7 @@ void main() {
 
         test('literal number can be detected', () {
             Token number = new Token('2342');
-            expect(number.type, equals(TokenType.num));
+            expect(number.type, equals(TokenType.int));
         });
 
         test('literal bool can be detected', () {

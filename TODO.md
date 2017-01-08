@@ -3,7 +3,10 @@
 _\( managed using [todo-md](https://github.com/Hypercubed/todo-md) \)_
 
 - [ ] general
-  - [ ] replace `num` with `int`, and add `float`
+  - [x] replace `num` with `int`, and add `float`
+  - [ ] add `num` back, but for parameters/returns which
+        can be either `int` or `float`.
+  - [ ] add return type to submodules
 - [ ] parser
   - [ ] submodule
     - [x] calling subs in submodules

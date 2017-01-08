@@ -9,7 +9,7 @@ RegExp NUMERIC = new RegExp(r'\d');
 RegExp OPERATORS = new RegExp(r'[\+\-\*\/><]');
 RegExp DELIMITERS = new RegExp(r'[\(\)\{\}\;\,]');
 
-List<String> TYPES = const ['num', 'str', 'bool', 'date'];
+List<String> TYPES = const ['int', 'float', 'str', 'bool', 'date'];
 List<String> CTRLS = const ['if', 'while', 'for', 'else', 'elif',
                             'return', 'handle', 'import'];
 List<String> OPERS = const ['+', '-', '*', '/', '=', '>', '<'];
@@ -20,7 +20,8 @@ enum TokenType {
     type,
     str,
     bool,
-    num,
+    int,
+    float,
     date,
     control,
     operator,
@@ -34,13 +35,12 @@ enum TokenType {
 }
 
 const List<TokenType> LITERAL = const [
-    TokenType.num,
+    TokenType.int,
+    TokenType.float,
     TokenType.str,
     TokenType.bool,
     TokenType.date,
     ];
-
-
 
 
 class Token {
@@ -71,8 +71,10 @@ class Token {
             return TokenType.control;
         else if (OPERS.any((x) => x == this.symbol))
             return TokenType.operator;
+        else if (NUMERIC_LITERAL.hasMatch(this.symbol) && ! this.symbol.contains('.'))
+            return TokenType.int;
         else if (NUMERIC_LITERAL.hasMatch(this.symbol))
-            return TokenType.num;
+            return TokenType.float;
         else if (STRING_LITERAL.hasMatch(this.symbol))
             return TokenType.str;
         else if (BOOL_LITERAL.hasMatch(this.symbol))

@@ -122,20 +122,20 @@ main() {
         });
         test('single parameter', () {
             fromStringExpect(
-                '(num a)',
-                '((num(a)))',
+                '(int a)',
+                '((int(a)))',
                 parse_parameters_definition,
                 );
         });
         test('multiple parameters', () {
             fromStringExpect(
-                '(num a, str s)',
-                '((num(a)) (str(s)))',
+                '(float a, str s)',
+                '((float(a)) (str(s)))',
                 parse_parameters_definition,
                 );
             fromStringExpect(
-                '(num n1, num n2, num n3, num n4)',
-                '((num(n1)) (num(n2)) (num(n3)) (num(n4)))',
+                '(int n1, int n2, int n3, int n4)',
+                '((int(n1)) (int(n2)) (int(n3)) (int(n4)))',
                 parse_parameters_definition,
                 );
         });
@@ -329,13 +329,13 @@ main() {
         });
         test('with return', () {
             String script = '''
-                sub double(num a) {
+                sub double(int a) {
                     return a * 2;
                 }
                 ''';
             fromStringExpect(
                 script,
-                '(((num(a))) double ((return((*) call ((a)(2))))))',
+                '(((int(a))) double ((return((*) call ((a)(2))))))',
                 parse_submodule,
                 );
         });
