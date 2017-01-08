@@ -25,6 +25,21 @@ void scriptYields(String script, String expected) {
     expect(translate(parsed), equals(expected));
 }
 
+Map MULT = {
+    'functions': {
+        '*': {
+            'name': 'F.Intrinsic.Math.Mult',
+            'params': ['num', 'num'],
+            'return': 'num',
+        },
+    },
+    'variables': {
+        'a': {
+            'scope': 'V.local',
+        }
+    }
+};
+
 
 main() {
     var random = new Random();
@@ -130,27 +145,41 @@ main() {
             Node n = parse_statement(streamify(s));
             String expected = 'F.Intrinsic.Math.Mult(1,3,A)';
             expect(translate_assignment(n, defs), equals(expected));
-        }, skip: 'Failing for some reason');
+        });
 
         test('infixes', () {
-            Map defs = {
-                'functions': {
-                    '*': {
-                        'name': 'F.Intrinsic.Math.Mult',
-                        'params': ['num', 'num'],
-                        'return': 'num',
-                    },
-                },
-                'variables': {
-                    'a': {
-                        'scope': 'V.local',
-                    }
-                }
-            };
             String s = 'a <- 1 * 3';
             Node n = parse_statement(streamify(s));
-            String expected = 'F.Intrinsic.Math.Mult(1, 3, A)';
+            String expected = 'F.Intrinsic.Math.Mult(1,3,A)';
+            expect(translate_assignment(n, MULT), equals(expected));
+        });
+    });
+
+    group('translate assignment', () {
+        test('simple', () {
+            Map defs = {
+                'functions': {},
+                'variables': {
+                    'a': {'scope': 'V.Local'},
+                },
+            };
+            String s = 'a <- 1';
+            Node n = parse_statement(streamify(s));
+            String expected = 'V.Local.A.Set(1)';
             expect(translate_assignment(n, defs), equals(expected));
-        }, skip: 'Fix previous expectations');
+        });
+        test('by name', () {
+            Map defs = {
+                'functions': {},
+                'variables': {
+                    'a': {'scope': 'V.Local'},
+                    'b': {'scope': 'V.Local'},
+                },
+            };
+            String s = 'a <- b';
+            Node n = parse_statement(streamify(s));
+            String expected = 'V.Local.A.Set(B)';
+            expect(translate_assignment(n, defs), equals(expected));
+        });
     });
 }

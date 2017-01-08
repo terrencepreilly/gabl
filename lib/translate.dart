@@ -12,6 +12,8 @@ Map<String, String> typeMap = {
     'date': 'Date',
 };
 
+List<String> LITERALS = new List<String>.from(typeMap.keys);
+
 
 String properCase(String s) {
     if (s.length == 0)
@@ -106,14 +108,28 @@ String translate_expression(Node expr, Map definitions) {
 }
 
 String translate_assignment(Node ass, Map definitions) {
-    if (ass.type != 'assign')
+    if (ass.type != 'sub-call' || ass.childAt(0)?.type != 'assign')
         throw new TranslationError('Expected an assignment');
-    String target = translate_name(ass.childAt(0));
-    // Handle normal assignment.
+    Node args = ass.childAt(1);
+    String target = translate_name(args.childAt(0));
+    if (LITERALS.contains(args.childAt(1).type)) {
+        // Handle literal assignment.
+        Map def = definitions['variables'][args.childAt(0).value];
+        String scope = def['scope'];
+        String arg = args.childAt(1).value;
+        return '$scope.$target.Set($arg)';
+    } else if (args.childAt(1).type == 'name') {
+        // Handle name assignment.
+        Map def = definitions['variables'][args.childAt(0).value];
+        String scope = def['scope'];
+        String arg = translate_name(args.childAt(1));
+        return '$scope.$target.Set($arg)';
+    } else {
+        // Handle function assignment.
+        String sub = translate_sub_call(args.childAt(1), definitions);
+        return sub.substring(0, sub.length-1) + ',' + target + ')';
+    }
     // Handle expression assignment.
-    // Handle function assignment.
-    String sub = translate_sub_call(ass.childAt(1), definitions);
-    return sub.substring(0, sub.length-1) + ',' + target + ')';
 }
 
 String translate_sub_call(Node sub, Map definitions) {
@@ -131,7 +147,7 @@ String translate_sub_call(Node sub, Map definitions) {
 }
 
 String translate_literal(Node literal) {
-    if (! ['num', 'bool', 'str', 'date'].contains(literal.type))
+    if (! LITERALS.contains(literal.type))
         throw new TranslationError('Expected a literal node');
     if (literal.type == 'bool')
         return properCase(literal.value);
