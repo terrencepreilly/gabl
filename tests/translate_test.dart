@@ -47,7 +47,7 @@ main() {
     group('translate submodules', () {
         test('without parameters or body', () {
             String script = '''
-                sub main() {}
+                none sub main() {}
                 ''';
             String expected = [
                 '',

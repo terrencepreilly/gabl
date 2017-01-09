@@ -9,7 +9,7 @@ RegExp NUMERIC = new RegExp(r'\d');
 RegExp OPERATORS = new RegExp(r'[\+\-\*\/><]');
 RegExp DELIMITERS = new RegExp(r'[\(\)\{\}\;\,]');
 
-List<String> TYPES = const ['int', 'float', 'str', 'bool', 'date'];
+List<String> TYPES = const ['int', 'float', 'str', 'bool', 'date', 'none'];
 List<String> CTRLS = const ['if', 'while', 'for', 'else', 'elif',
                             'return', 'handle', 'import'];
 List<String> OPERS = const ['+', '-', '*', '/', '=', '>', '<'];
@@ -23,6 +23,7 @@ enum TokenType {
     int,
     float,
     date,
+    none,
     control,
     operator,
     openblock,
@@ -40,6 +41,7 @@ const List<TokenType> LITERAL = const [
     TokenType.str,
     TokenType.bool,
     TokenType.date,
+    TokenType.none,
     ];
 
 

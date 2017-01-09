@@ -17,7 +17,7 @@ Node parse(SimpleStream<Token> ss) {
         if (ss.peek().type == TokenType.control
                 && ss.peek().symbol == 'import') {
             n.addChild(parse_import(ss));
-        } else if (ss.peek().type == TokenType.submodule) {
+        } else if (ss.peek().type == TokenType.type) {
             n.addChild(parse_submodule(ss));
         }
     }
@@ -53,6 +53,9 @@ Node parse_handle(SimpleStream<Token> ss) {
 
 
 Node parse_submodule(SimpleStream<Token> ss) {
+    if (! ss.hasNext() || ss.peek().type != TokenType.type)
+        throw new ParserError('Expected return type');
+    Node return_type = parse_type(ss);
     if (! ss.hasNext()
             || (ss.peek().type != TokenType.submodule
                 && ss.peek().symbol != 'sub'))
@@ -60,7 +63,8 @@ Node parse_submodule(SimpleStream<Token> ss) {
     ss.next();
     return new Node(type: 'submodule', value: parse_name(ss).value)
         ..addChild(parse_parameters_definition(ss))
-        ..addChild(parse_block(ss));
+        ..addChild(parse_block(ss))
+        ..addChild(return_type);
 }
 
 

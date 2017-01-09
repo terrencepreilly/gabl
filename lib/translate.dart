@@ -85,8 +85,8 @@ Map select_submodule_definition(Map definitions, Node n) {
 String translate_submodule(Node sub) {
     if (sub.type != 'submodule')
         throw new TranslationError('Expected a submodule node');
-    Node params = sub.children.first;
-    Node block = sub.children.last;
+    Node params = sub.childAt(0);
+    Node block = sub.childAt(1);
     String properName = properCase(sub.value);
     return [
         translate_parameters(params),

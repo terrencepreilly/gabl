@@ -17,12 +17,20 @@ main() {
     });
 
 
-    test('can parse type', () {
-        SimpleStream<Token> ss = streamify('str');
-        Node type = parse_type(ss);
-        expect(type, isNot(equals(null)));
-        expect(type.type, equals('type'));
-        expect(type.value, equals('str'));
+    group('types', () {
+        test('str', () {
+            SimpleStream<Token> ss = streamify('str');
+            Node type = parse_type(ss);
+            expect(type, isNot(equals(null)));
+            expect(type.type, equals('type'));
+            expect(type.value, equals('str'));
+        });
+        test('none', () {
+            SimpleStream<Token> ss = streamify('none');
+            Node type = parse_type(ss);
+            expect(type.type, equals('type'));
+            expect(type.value, equals('none'));
+        });
     });
 
 
@@ -217,7 +225,7 @@ main() {
         });
         test('nested in block', () {
             String script = '''
-                sub fn() {
+                none sub fn() {
                     handle(onException) {
                         Msg(x);
                     }
@@ -225,7 +233,7 @@ main() {
                 ''';
             fromStringExpect(
                 script,
-                '(() fn (((onException) handle (((Msg) call ((x)))))))',
+                '(() fn (((onException) handle (((Msg) call ((x)))))) (none))',
                 parse_submodule,
                 );
         });
@@ -319,23 +327,23 @@ main() {
     group('submodule', () {
         test('null', () {
             String script = '''
-                sub A() {}
+                none sub A() {}
                 ''';
             fromStringExpect(
                 script,
-                '(() A ())',
+                '(() A () (none))',
                 parse_submodule,
                 );
         });
         test('with return', () {
             String script = '''
-                sub double(int a) {
+                int sub double(int a) {
                     return a * 2;
                 }
                 ''';
             fromStringExpect(
                 script,
-                '(((int(a))) double ((return((*) call ((a)(2))))))',
+                '(((int(a))) double ((return((*) call ((a)(2))))) (int))',
                 parse_submodule,
                 );
         });
@@ -370,12 +378,12 @@ main() {
             String script = '''
                 import http;
 
-                sub onHttpError() {
+                str sub onHttpError() {
                     Msg("There was an error!");
                     return "";
                 }
 
-                sub retrievePage(str pagename) {
+                str sub retrievePage(str pagename) {
                     str value <- "";
                     handle(onHttpError) {
                         value <- get(pagename);
@@ -383,7 +391,7 @@ main() {
                     return value;
                 }
 
-                sub main() {
+                none sub main() {
                     Msg(retrievePage("google.com"));
                 }
                 ''';
