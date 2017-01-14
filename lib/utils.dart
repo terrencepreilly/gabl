@@ -79,4 +79,43 @@ class Node {
         ret += ')';
         return ret;
     }
+
+    String _toDotDefinition([String identifier="0"]) {
+        String safe_value = value;
+        if (['<-', '<', '>'].contains(safe_value))
+            safe_value = '';
+        String self = [
+            '\tnode_$identifier [shape=none, margin=0, label=<',
+            '\t    <table border="0" cellborder="1"',
+            '\t          cellspacing="0" cellpadding="4">',
+            '\t     <tr>',
+            '\t       <td>$type</td>',
+            '\t       <td>"$safe_value"</td>',
+            '\t     </tr>',
+            '\t   </table>',
+            '\t>];\n\n'].join('\n');
+        for (int i = 0; i < children.length; i++) {
+            self += children[i]._toDotDefinition(identifier + i.toString());
+        }
+        return self;
+    }
+
+    String _toDotRelationship([String identifier="0"]) {
+        String self = '';
+        for (int i = 0; i < children.length; i++) {
+            self += '\tnode_$identifier -> node_${identifier + i.toString()};\n';
+        }
+        for (int i = 0; i < children.length; i++) {
+            self += children[i]._toDotRelationship(identifier + i.toString());
+        }
+        return self;
+    }
+
+    String graph() {
+        return [
+            'digraph G {',
+            '${this._toDotDefinition()}',
+            '${this._toDotRelationship()}',
+            '}'].join('\n');
+    }
 }
