@@ -35,6 +35,26 @@ class TranslationError extends Error {
 }
 
 
+String unimplemented(Node n) {
+    throw new TranslationError('Unimplemented!');
+}
+
+const Map<String, Function> router = const {
+    'block': translate_block,
+    'parameters': translate_parameters,
+    'submodule': translate_submodule,
+    'import': unimplemented,
+    'int': translate_literal,
+    'float': translate_literal,
+    'bool': translate_literal,
+    'str': translate_literal,
+    'none': translate_literal,
+    'date': translate_literal,
+    'type': translate_definition,
+    'assign': translate_definition,
+};
+
+
 String translate(Node ast) {
     String ret = '';
     for (Node child in ast.children) {
@@ -100,8 +120,17 @@ String translate_submodule(Node sub) {
 String translate_block(Node block) {
     if (block.type != 'block')
         throw new TranslationError('Expected a block node');
+    List<String> children = new List<String>();
+    for (Node child in block.children) {
+        if (! router.containsKey(child.type))
+            throw new TranslationError('Unexpected node type');
+        Function fn = router[child.type];
+        children.add(fn(child));
+    }
     // handle children
-    return '';
+    if (children.length == 0)
+        return '';
+    return children.join('\n');
 }
 
 
@@ -114,12 +143,21 @@ String translate_parameters(Node params) {
 
 
 String translate_definition(Node def) {
+    if (! ['type', 'assign'].contains(def.type))
+        throw new TranslationError('Expected type or assignment node');
     if (def.children.length == 0)
         throw new TranslationError('Expected to have a name');
-    String type = translate_type(def);
-    String name = translate_name(def.children.first);
-    // handle expression!
-    return 'V.Local.$name.Declare($type)';
+    if (def.type == 'type') {
+        String type = translate_type(def);
+        String name = translate_name(def.children.first);
+        // handle expression!
+        return 'V.Local.$name.Declare($type)';
+    } else if (def.type == 'assign') {
+        String type = translate_type(def.children.first);
+        String name = translate_name(def.childAt(0).childAt(0));
+        String value = translate_literal(def.childAt(1));
+        return 'V.Local.$name.Declare($type, $value)';
+    }
 }
 
 

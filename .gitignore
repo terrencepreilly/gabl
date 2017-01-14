@@ -39,3 +39,6 @@ translation/*.yaml
 # Testing definitions and such
 .source
 lib/tmp.dart
+
+# Temporary files
+tmp/

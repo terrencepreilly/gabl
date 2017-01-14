@@ -1,11 +1,15 @@
 import 'dart:math';
 import 'package:test/test.dart';
-import '../lib/utils.dart';
-import '../lib/lexer.dart';
-import '../lib/parser.dart';
-import '../lib/translate.dart';
+import '../../lib/utils.dart';
+import '../../lib/lexer.dart';
+import '../../lib/parser.dart';
+import '../../lib/translate.dart';
+
+const List<String> LITERAL_NODE_TYPES =
+    const ['int', 'float', 'str', 'bool', 'date', 'none'];
 
 
+// TODO: Get all of the methods to use this that can.
 void nodeYields(Node n, String expected) {
     String translated = '';
     if (n.type == 'block')
@@ -14,15 +18,9 @@ void nodeYields(Node n, String expected) {
         translated = translate_parameters(n);
     else if (n.type == 'submodule')
         translated = translate_submodule(n);
-    else if (n.type == 'type')
-        translated = translate_definition(n);
+    else if (LITERAL_NODE_TYPES.contains(n.type))
+        translated = translate_literal(n);
     expect(translated, equals(expected));
-}
-
-
-void scriptYields(String script, String expected) {
-    Node parsed = parse(streamify(script));
-    expect(translate(parsed), equals(expected));
 }
 
 Map MULT = {
@@ -42,22 +40,8 @@ Map MULT = {
 
 
 main() {
-    var random = new Random();
+    Random random = new Random();
 
-    group('translate submodules', () {
-        test('without parameters or body', () {
-            String script = '''
-                none sub main() {}
-                ''';
-            String expected = [
-                '',
-                'Program.Submodule.Main.Start',
-                '',
-                'Program.Submodule.Main.End'
-            ].join('\n');
-            scriptYields(script, expected);
-        });
-    });
 
     group('translate blocks', () {
         test('empty', () {
@@ -70,13 +54,6 @@ main() {
         test('empty', () {
             Node n = new Node(type: 'parameters', value: '');
             nodeYields(n, '');
-        });
-    });
-
-    group('translate definition', () {
-        test('without initialization', () {
-            Node n = parse_definition(streamify('int a;'));
-            nodeYields(n, 'V.Local.A.Declare(Long)');
         });
     });
 
@@ -94,17 +71,17 @@ main() {
         test('number doesn\'t change', () {
             int number = random.nextInt(100);
             Node n = parse_literal(streamify(number.toString()));
-            expect(translate_literal(n), equals(number.toString()));
+            nodeYields(n, number.toString());
         });
         test('bool is in proper case', () {
             Node n = parse_literal(streamify('true'));
             String expected = 'True';
-            expect(translate_literal(n), equals(expected));
+            nodeYields(n, 'True');
         });
         test('str doesn\'t change', () {
             String s = '"Hello, world!"';
             Node n = parse_literal(streamify(s));
-            expect(translate_literal(n), equals(s));
+            nodeYields(n, s);
         });
     });
 

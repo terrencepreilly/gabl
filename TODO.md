@@ -14,3 +14,12 @@ _\( managed using [todo-md](https://github.com/Hypercubed/todo-md) \)_
 - [ ] translate
   - [ ] handle global/local variables
   - [ ] handle scope
+  - [ ] expressions
+  - [ ] submodule call
+  - [ ] handle statement
+  - [ ] submodule definition
+  - [ ] variable declaration
+  - [ ] control structures
+    - [ ] for loops
+    - [ ] while loops
+    - [ ] if-then-else statements

@@ -91,7 +91,7 @@ class Token {
 
 
 /* TODO: break into individual functions */
-Iterable tokenize(String script) sync* {
+Iterable<Token> tokenize(String script) sync* {
     String buff = '';
     Iterable iter = new Iterable.generate(script.length, (int i) => script[i]);
     SimpleStream<String> ss = new SimpleStream(new List<String>.from(iter));
