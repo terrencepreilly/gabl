@@ -187,4 +187,40 @@ main() {
             expect(def_float['return'], equals('float'));
         });
     });
+
+    group('Memory', () {
+        test('Can add names to memory.', () {
+            Memory mem = new Memory();
+            mem.add('var1');
+            mem.add('var2');
+        });
+        test('Can see last item added to memory', () {
+            Memory mem = new Memory();
+            mem.add('var1');
+            mem.add('var2');
+            expect(mem.last, equals('var2'));
+        });
+        test('Can designate the last item, if it already exists', () {
+            Memory mem = new Memory();
+            mem.add('var1');
+            mem.add('var2');
+            mem.touch('var1');
+            expect(mem.last, equals('var1'));
+        });
+        test('Adding the same value twice raises an error', () {
+            Memory mem = new Memory();
+            mem.add('var1');
+            try {
+                mem.add('var1');
+            } catch (e) {
+                expect(e.msg, equals('Variable var1 already exists.'));
+            }
+        });
+        test('Can generate a new, unique name', () {
+            Memory mem = new Memory();
+            mem.add('v1');
+            mem.next();
+            expect(mem.last, isNot(equals('v1')));
+        });
+    });
 }

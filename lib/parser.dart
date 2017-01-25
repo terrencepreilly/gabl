@@ -5,7 +5,7 @@ import 'utils.dart';
 class ParserError extends Error {
     String msg;
 
-    ParserError([String msg = '']);
+    ParserError(this.msg);
 
     String toString() => this.msg;
 }

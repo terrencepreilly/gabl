@@ -29,14 +29,60 @@ String properCase(String s) {
 class TranslationError extends Error {
     String msg;
 
-    TranslationError([String msg = '']);
+    TranslationError(this.msg);
 
     String toString() => this.msg;
 }
 
+class RedefinitionError extends Error {
+    String msg;
+
+    RedefinitionError(this.msg);
+
+    String toString() => this.msg;
+}
+
+/// Describes the variables that have been defined in the given scope.
+class Memory {
+    Set<String> names;
+    String last;
+    int _last_index;
+    String _prefix;
+
+    Memory() {
+        names = new Set<String>();
+        _last_index = 0;
+        _prefix = 'v';
+    }
+
+    /// Add a [name] to this scope.
+    void add(String name) {
+        if (names.contains(name))
+            throw new RedefinitionError('Variable $name already exists.');
+        names.add(name);
+        last = names.last;
+    }
+
+    /// If [name] is in this scope, make it the last one referenced.
+    void touch(String name) {
+        if (names.contains(name))
+            last = name;
+    }
+
+    /// Add a unique name to [names], and return it.
+    String next() {
+        while (names.contains('$_prefix$_last_index')) {
+            _last_index++;
+        }
+        add('$_prefix$_last_index');
+        return '$_prefix$_last_index';
+    }
+}
+
 
 String unimplemented(Node n) {
-    throw new TranslationError('Unimplemented!');
+//    throw new TranslationError('Unimplemented!');
+    return '';
 }
 
 const Map<String, Function> router = const {
@@ -52,6 +98,7 @@ const Map<String, Function> router = const {
     'date': translate_literal,
     'type': translate_definition,
     'assign': translate_definition,
+    'sub-call': translate_sub_call,
 };
 
 
@@ -76,6 +123,7 @@ bool list_equality<T>(List<T> l1, List<T> l2) {
 
 
 // TODO Refactor! This is gross!
+/// Select the definition of the submodule call to use for [n].
 Map select_submodule_definition(Map definitions, Node n) {
     if (n.type != 'sub-call')
         throw new TranslationError('Expected a submodule');
@@ -102,30 +150,37 @@ Map select_submodule_definition(Map definitions, Node n) {
         );
 }
 
-String translate_submodule(Node sub) {
+String translate_submodule(Node sub, [Map definitions = const {}]) {
     if (sub.type != 'submodule')
         throw new TranslationError('Expected a submodule node');
     Node params = sub.childAt(0);
     Node block = sub.childAt(1);
     String properName = properCase(sub.value);
     return [
-        translate_parameters(params),
+        translate_parameters(params, definitions),
         'Program.Submodule.$properName.Start',
-        translate_block(block),
+        translate_block(block, definitions),
         'Program.Submodule.$properName.End',
         ].join('\n');
 }
 
+String route(Node n) {
+    if (! router.containsKey(n.type))
+        throw new TranslationError('Unexpected node type');
+    return router[n.type](n);
+}
 
-String translate_block(Node block) {
+
+String translate_block(Node block, [Map definitions = const {}]) {
     if (block.type != 'block')
         throw new TranslationError('Expected a block node');
     List<String> children = new List<String>();
     for (Node child in block.children) {
+        print('Handling ${child.type}'); // TODO Remove.
         if (! router.containsKey(child.type))
             throw new TranslationError('Unexpected node type');
         Function fn = router[child.type];
-        children.add(fn(child));
+        children.add(fn(child, definitions));
     }
     // handle children
     if (children.length == 0)
@@ -134,7 +189,7 @@ String translate_block(Node block) {
 }
 
 
-String translate_parameters(Node params) {
+String translate_parameters(Node params, [Map definitions = const {}]) {
     if (params.type != 'parameters')
         throw new TranslationError('Expected a parameters node');
     // handle children
@@ -142,7 +197,7 @@ String translate_parameters(Node params) {
 }
 
 
-String translate_definition(Node def) {
+String translate_definition(Node def, [Map definitions = const {}]) {
     if (! ['type', 'assign'].contains(def.type))
         throw new TranslationError('Expected type or assignment node');
     if (def.children.length == 0)
@@ -161,7 +216,7 @@ String translate_definition(Node def) {
 }
 
 
-String translate_type(Node type) {
+String translate_type(Node type, [Map definitions = const {}]) {
     if (type.type != 'type')
         throw new TranslationError('Expected a type node');
     if (! typeMap.containsKey(type.value))
@@ -170,7 +225,7 @@ String translate_type(Node type) {
 }
 
 
-String translate_name(Node name) {
+String translate_name(Node name, [Map definitions = const {}]) {
     if (name.type != 'name')
         throw new TranslationError('Expected a name node');
     return properCase(name.value);
@@ -206,18 +261,37 @@ String translate_assignment(Node ass, Map definitions) {
     // Handle expression assignment.
 }
 
+String translate_sub_call_2(Node sub, Map definitions, Memory mem) {
+    if (sub.type != 'sub-call')
+        throw new TranslationError('Expected a submodule call');
+    String varname = mem.next();
+    Map def = select_submodule_definition(definitions, sub);
+    String definition = route(
+        new Node(type: "type", value: def["return"])
+            ..addChild(new Node(type: "name", value: varname))
+        );
+    String args = new List<String>.from(
+        sub.childAt(1).children.map((x) => route(x))
+        ).join(', ');
+    return '\n$definition\n${def["name"]}($args, ${properCase(varname)})';
+}
+
 String translate_sub_call(Node sub, Map definitions) {
     if (sub.type != 'sub-call')
         throw new TranslationError('Expected a submodule call');
-    Map definition = select_submodule_definition(definitions, sub);
-    String ret = definition['name'] + '(';
-    ret += sub.childAt(1).childrenAfter(0).map(
-        (x) => translate_literal(x)).join(',');
-    ret += ')';
-    return ret;
+    if (sub.childAt(0).type == 'assign') {
+        return 'V.local..Set(';
+    } else {
+        Map definition = select_submodule_definition(definitions, sub);
+        String ret = definition['name'] + '(';
+        ret += sub.childAt(1).childrenAfter(0).map(
+            (x) => translate_literal(x)).join(',');
+        ret += ')';
+        return ret;
+    }
 }
 
-String translate_literal(Node literal) {
+String translate_literal(Node literal, [Map definitions = const {}]) {
     if (! LITERALS.contains(literal.type))
         throw new TranslationError('Expected a literal node');
     if (literal.type == 'bool')

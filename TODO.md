@@ -23,3 +23,6 @@ _\( managed using [todo-md](https://github.com/Hypercubed/todo-md) \)_
     - [ ] for loops
     - [ ] while loops
     - [ ] if-then-else statements
+
+- [ ] <- is parsed as a sub-call.  Fix this so that it is just parsed as assign
+     or handle elsewhere.
