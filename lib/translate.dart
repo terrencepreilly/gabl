@@ -34,6 +34,7 @@ class TranslationError extends Error {
     String toString() => this.msg;
 }
 
+
 class RedefinitionError extends Error {
     String msg;
 
@@ -42,40 +43,64 @@ class RedefinitionError extends Error {
     String toString() => this.msg;
 }
 
+
+class MemoryError extends Error {
+    String msg;
+
+    MemoryError(this.msg);
+
+    String toString() => this.msg;
+}
+
+
 /// Describes the variables that have been defined in the given scope.
 class Memory {
     Set<String> names;
+    Map<String, Set<String>> types;
     String last;
     int _last_index;
     String _prefix;
 
     Memory() {
         names = new Set<String>();
+        types = new Map<String, Set<String>>();
         _last_index = 0;
         _prefix = 'v';
     }
 
     /// Add a [name] to this scope.
-    void add(String name) {
-        if (names.contains(name))
+    void add(String name, String type) {
+        if (names.contains(name) && types[name].contains(type))
             throw new RedefinitionError('Variable $name already exists.');
         names.add(name);
-        last = names.last;
+        if (! types.containsKey(name))
+            types[name] = new Set<String>();
+        types[name].add(type);
+        last = name;
     }
 
     /// If [name] is in this scope, make it the last one referenced.
     void touch(String name) {
-        if (names.contains(name))
+        if (! names.contains(name))
+            throw new MemoryError('Name "$name" is undefined.');
+        else
             last = name;
     }
 
     /// Add a unique name to [names], and return it.
-    String next() {
+    String next(String type) {
         while (names.contains('$_prefix$_last_index')) {
             _last_index++;
         }
-        add('$_prefix$_last_index');
+        add('$_prefix$_last_index', type);
         return '$_prefix$_last_index';
+    }
+
+    /// Lookup what types are associated with this [name].
+    List<String> lookup_types(String name) {
+        if (! types.containsKey(name))
+            return new List<String>();
+        return new List<String>.from(types[name]);
     }
 }
 
@@ -99,6 +124,7 @@ const Map<String, Function> router = const {
     'type': translate_definition,
     'assign': translate_definition,
     'sub-call': translate_sub_call,
+    'name': translate_name,
 };
 
 
@@ -124,7 +150,7 @@ bool list_equality<T>(List<T> l1, List<T> l2) {
 
 // TODO Refactor! This is gross!
 /// Select the definition of the submodule call to use for [n].
-Map select_submodule_definition(Map definitions, Node n) {
+Map select_submodule_definition(Map definitions, Node n, [Memory mem]) {
     if (n.type != 'sub-call')
         throw new TranslationError('Expected a submodule');
 
@@ -138,7 +164,7 @@ Map select_submodule_definition(Map definitions, Node n) {
 
     List<Map> defs = definitions['functions'][gabl_name];
     List<Node> args = n.childAt(1).childrenAfter(0);
-    List<String> arg_types = new List<String>.from(args.map((x) => x.type));
+    List<String> arg_types = get_argument_types(args, mem);
     List<List<String>> param_types = new List<List<String>>
         .generate(defs.length, (i) => defs[i]['params']);
     for (int i = 0; i < param_types.length; i++) {
@@ -148,6 +174,19 @@ Map select_submodule_definition(Map definitions, Node n) {
     throw new TranslationError(
         'Submodule $gabl_name with parameters $arg_types not found'
         );
+}
+
+List<String> get_argument_types(List<Node> args, Memory mem) {
+    // This currently only returns one type per argument.  In the future,
+    // we may want to return more.
+    return new List<String>.from(args.map((arg) {
+        if (LITERALS.contains(arg.type))
+            return arg.type;
+        else if (arg.type == 'name')
+            return mem.lookup_types(arg.value).first;
+        else
+            throw new TranslationError('Unexpected node type ${arg.type}');
+    }));
 }
 
 String translate_submodule(Node sub, [Map definitions = const {}]) {
@@ -264,8 +303,18 @@ String translate_assignment(Node ass, Map definitions) {
 String translate_sub_call_2(Node sub, Map definitions, Memory mem) {
     if (sub.type != 'sub-call')
         throw new TranslationError('Expected a submodule call');
-    String varname = mem.next();
-    Map def = select_submodule_definition(definitions, sub);
+    // Translate the children into variable names, then process parent
+    String ret = '';
+    for (int i = 0; i < sub.childAt(1).children.length; i++) {
+        Node curr = sub.childAt(1).children[i];
+        if (curr.type == 'sub-call') {
+            ret += translate_sub_call_2(curr, definitions, mem);
+            String curr_new_name = mem.last;
+            sub.childAt(1).children[i] = new Node(type: 'name', value: curr_new_name);
+        }
+    }
+    Map def = select_submodule_definition(definitions, sub, mem);
+    String varname = mem.next(def['return']);
     String definition = route(
         new Node(type: "type", value: def["return"])
             ..addChild(new Node(type: "name", value: varname))
@@ -273,9 +322,10 @@ String translate_sub_call_2(Node sub, Map definitions, Memory mem) {
     String args = new List<String>.from(
         sub.childAt(1).children.map((x) => route(x))
         ).join(', ');
-    return '\n$definition\n${def["name"]}($args, ${properCase(varname)})';
+    return '$ret\n$definition\n${def["name"]}($args, ${properCase(varname)})';
 }
 
+// TODO: Remove
 String translate_sub_call(Node sub, Map definitions) {
     if (sub.type != 'sub-call')
         throw new TranslationError('Expected a submodule call');

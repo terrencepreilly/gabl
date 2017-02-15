@@ -70,7 +70,7 @@ void main() {
             Node n = parse(streamify(script));
             String actual = translate_submodule(n.childAt(0), ADD);
             expect(actual, equals(expected));
-        }, skip: 'Prepare some other things.');
+        });
     });
 
     group('Long Expressions', () {
@@ -81,6 +81,19 @@ void main() {
                 '',
                 'V.Local.V0.Declare(Long)',
                 'F.Intrinsic.Math.Add(5, 3, V0)',
+                ].join('\n');
+            String actual = translate_sub_call_2(n, ADD, new Memory());
+            expect(actual, equals(expected));
+        });
+        test('chains assigned arguments', () {
+            String script = '7 + 5 + 3';
+            Node n = parse_statement(streamify(script));
+            String expected = [
+                '',
+                'V.Local.V0.Declare(Long)',
+                'F.Intrinsic.Math.Add(5, 3, V0)',
+                'V.Local.V1.Declare(Long)',
+                'F.Intrinsic.Math.Add(7, V0, V1)',
                 ].join('\n');
             String actual = translate_sub_call_2(n, ADD, new Memory());
             expect(actual, equals(expected));
