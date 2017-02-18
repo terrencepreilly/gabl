@@ -13,13 +13,13 @@ const List<String> LITERAL_NODE_TYPES =
 void nodeYields(Node n, String expected) {
     String translated = '';
     if (n.type == 'block')
-        translated = translate_block(n);
+        translated = translate_block(n, {}, new Memory());
     else if (n.type == 'parameters')
-        translated = translate_parameters(n);
+        translated = translate_parameters(n, {}, new Memory());
     else if (n.type == 'submodule')
-        translated = translate_submodule(n);
+        translated = translate_submodule(n, {}, new Memory());
     else if (LITERAL_NODE_TYPES.contains(n.type))
-        translated = translate_literal(n);
+        translated = translate_literal(n, {}, new Memory());
     expect(translated, equals(expected));
 }
 
@@ -85,53 +85,6 @@ main() {
         });
     });
 
-    group('translate submodule call', () {
-        test('fruitless', () {
-            Map defs = {
-                'functions': {
-                    'Msg': [{
-                        'name': 'F.Intrinsic.UI.MsgBox',
-                        'params': ['str'],
-                        'return': null,
-                        }]
-                    },
-                'variables': {}
-                };
-            String s = 'Msg("hello!")';
-            Node n = parse_statement(streamify(s));
-            String expected = 'F.Intrinsic.UI.MsgBox("hello!")';
-            expect(translate_sub_call(n, defs), equals(expected));
-        });
-
-        test('fruitfull', () {
-            Map defs = {
-                'functions': {
-                    'mult': [{
-                        'name': 'F.Intrinsic.Math.Mult',
-                        'params': ['int', 'int'],
-                        'return': 'int',
-                        }]
-                },
-                'variables': {
-                    'a': {
-                        'scope': 'V.local',
-                    }
-                },
-                };
-            String s = 'a <- mult(1, 3)';
-            Node n = parse_statement(streamify(s));
-            String expected = 'F.Intrinsic.Math.Mult(1,3,A)';
-            expect(translate_assignment(n, defs), equals(expected));
-        });
-
-        test('infixes', () {
-            String s = 'a <- 1 * 3';
-            Node n = parse_statement(streamify(s));
-            String expected = 'F.Intrinsic.Math.Mult(1,3,A)';
-            expect(translate_assignment(n, MULT), equals(expected));
-        });
-    });
-
     group('translate assignment', () {
         test('simple', () {
             Map defs = {
@@ -143,7 +96,7 @@ main() {
             String s = 'a <- 1';
             Node n = parse_statement(streamify(s));
             String expected = 'V.Local.A.Set(1)';
-            expect(translate_assignment(n, defs), equals(expected));
+            expect(translate_assignment(n, defs, new Memory()), equals(expected));
         });
         test('by name', () {
             Map defs = {
@@ -156,7 +109,7 @@ main() {
             String s = 'a <- b';
             Node n = parse_statement(streamify(s));
             String expected = 'V.Local.A.Set(B)';
-            expect(translate_assignment(n, defs), equals(expected));
+            expect(translate_assignment(n, defs, new Memory()), equals(expected));
         });
     });
 
